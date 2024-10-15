@@ -1,0 +1,121 @@
+import {Injectable} from '@angular/core';
+import * as Papa from 'papaparse'
+import {ReplaySubject} from 'rxjs';
+import {AlmaJobService} from "./alma-job.service";
+import {filter, take} from "rxjs/operators";
+
+export interface PhysicalItem {
+    barcode: string,
+    existsInAlma: boolean,
+
+    title: string | null,
+    callNumber: string | null
+    library: string | null,
+    location: string | null,
+    itemMaterialType: string | null,
+    policyType: string | null,
+    status: string | null,
+    processType: string | null,
+    inTempLocation: boolean | null,
+    requested: boolean | null
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class ParseReportService {
+    private loadComplete$: ReplaySubject<PhysicalItem[] | null> = new ReplaySubject(1)
+
+    constructor(private ajs: AlmaJobService) {
+    }
+
+    public getParsedPhysicalItemsOnce() {
+        return this.loadComplete$.pipe(filter(physicalItems => {
+            return physicalItems !== null
+        }), take(1))
+    }
+
+    parseReport(file: Papa.LocalFile | string) {
+        this.loadComplete$.next(null)
+        this.ajs.loadComplete$.pipe(filter(runJobOutput => {
+            return runJobOutput !== null
+        }), take(1)).subscribe(runJobOutput => {
+            Papa.parse(file, {
+                complete: (results: any) => {
+                    const dataLookup: {
+                        [key: string]: {
+                            title: string,
+                            callNumber: string,
+                            library: string,
+                            location: string,
+                            itemMaterialType: string,
+                            policyType: string,
+                            status: string,
+                            processType: string,
+                            inTempLocation: boolean,
+                            requested: boolean
+                        }
+                    } = {}
+
+                    results.data.forEach(row => {
+                        dataLookup[row[" Barcode"]] = {
+                            title: row[" Title"],
+                            callNumber: row[" Call Number"],
+                            library: row[" Local Location"],
+                            location: row[" Permanent Physical Location"],
+                            itemMaterialType: row[" Item Material Type"],
+                            policyType: row[" Policy"],
+                            status: row["Status"],
+                            processType: row["Process type"],
+                            inTempLocation: row["Temp library"] && row["Temp location"],
+                            requested: row["Process type"] === "REQUESTED"
+                        }
+                    })
+
+                    const physicalItems: PhysicalItem[] = []
+                    runJobOutput.barcodes.forEach(barcode => {
+                        if (dataLookup.hasOwnProperty(`'${barcode}'`)) {
+                            // If the item is in Alma...
+                            const data = dataLookup[`'${barcode}'`]
+                            physicalItems.push({
+                                barcode,
+                                existsInAlma: true,
+                                title: data.title,
+                                callNumber: data.callNumber,
+                                library: data.library,
+                                location: data.location,
+                                policyType: data.policyType,
+                                itemMaterialType: data.itemMaterialType,
+                                status: data.status,
+                                processType: data.processType,
+                                inTempLocation: data.inTempLocation,
+                                requested: data.requested,
+                            })
+                        } else {
+                            // Item does NOT exist in Alma
+                            physicalItems.push({
+                                barcode,
+                                existsInAlma: false,
+                                title: null,
+                                callNumber: null,
+                                library: null,
+                                location: null,
+                                policyType: null,
+                                itemMaterialType: null,
+                                status: null,
+                                processType: null,
+                                inTempLocation: null,
+                                requested: null,
+                            })
+                        }
+                    })
+                    console.log("Complete")
+                    this.loadComplete$.next(physicalItems)
+                },
+                header: true // If your CSV has headers
+            });
+        })
+
+
+    }
+}

@@ -1,0 +1,63 @@
+<div class="eca-actions">
+  <button
+    mat-flat-button
+    color="secondary"
+    disabled="true"
+    [routerLink]="['/']"
+  >
+    Back
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="barcodeForm.invalid || (loading$ | async)"
+    (click)="onSubmit()"
+  >
+    Next
+  </button>
+</div>
+
+<div>
+  <form action="onSubmit()" [formGroup]="barcodeForm" class="inventory-form">
+    <h2 class="inventory-form__instructions">
+      Let's get started! To begin, please load an XLSX file containing a list of
+      barcodes.
+    </h2>
+
+    <!-- File Input -->
+    <div class="inventory-form__field">
+      <label for="fileInput">Barcode File</label>
+      <input
+        formControlName="barcodeXLSXFile"
+        (change)="onFileSelect($event)"
+        name="fileInput"
+        type="file"
+        accept=".xlsx"
+      />
+    </div>
+
+    <!-- Reuse data. Show only if there is a history of processing this file. -->
+    <div *ngIf="previousRun">
+      <app-run-info prefix="Previous" [runInfo]="previousRun"></app-run-info>
+      <p style="margin-top: .75rem; font-weight: bold;">
+        Your file looks very similar to this previous run. To save 1 of your
+        institution's 5 hourly runs, should we reuse this data?
+      </p>
+    </div>
+    
+    <div class="inventory-form__field">
+      <label for="useCachedResultsInput">Reuse data?</label>
+      <mat-radio-group
+        name="useCachedResultsInput"
+        formControlName="useCachedResults"
+      >
+        <mat-radio-button [value]="true">Yes</mat-radio-button>
+        <mat-radio-button [value]="false">No</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <p *ngIf="!previousRun">
+      Clicking 'Next' will load data from Alma. Loading may take a few minutes
+    </p>
+  </form>
+</div>

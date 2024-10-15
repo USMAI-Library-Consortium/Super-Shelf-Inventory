@@ -1,0 +1,38 @@
+<div class="eca-actions">
+    <button
+            mat-flat-button
+            color="secondary"
+            [routerLink]="['/']"
+    >
+        Back
+    </button>
+    <button
+            mat-flat-button
+            color="primary"
+            (click)="onSubmit()"
+            [disabled]="!(this.ajs.loadComplete$ | async)"
+    >
+        Next
+    </button>
+</div>
+<div>
+    <app-run-info *ngIf="this.ajs.loadComplete$ | async as jobOutput" [minimized]="true" [runInfo]="jobOutput"></app-run-info>
+    <p style=" margin-top: .5rem;">Please download the following report from Alma and then upload it here.</p>
+    <p>Please pin this Cloud App or switch to a different Alma window before downloading this report, otherwise the app will quit (Your data load will be saved, however).</p>
+    <p>To access this report, navigate to: <span style="font-weight: 500;">Admin &gt; Monitor Jobs &gt; History &gt; (Select Job with above ID) &gt; Link to Exported Records &gt; ... &gt; Download</span></p>
+
+    <form action="onSubmit()" [formGroup]="reportForm" class="inventory-form">
+        <!-- File Input -->
+        <div class="inventory-form__field">
+            <label for="fileInput">Report File</label>
+            <input
+                    formControlName="reportFormInput"
+                    (change)="onFileSelect($event)"
+                    name="fileInput"
+                    id="fileInput"
+                    type="file"
+                    accept=".csv"
+            />
+        </div>
+    </form>
+</div>

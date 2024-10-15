@@ -1,0 +1,11 @@
+{
+   "id": "super-shelf-2000",
+   "title": "Super Shelf 2000",
+   "subtitle": "Tool for performing batch inventories",
+   "author": "Erik Jones (USMAI)",
+   "contentSecurity": {
+      "sandbox": {
+         "downloads": true
+      }
+   }
+}

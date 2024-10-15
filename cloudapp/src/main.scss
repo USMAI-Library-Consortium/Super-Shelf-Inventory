@@ -1,0 +1,11 @@
+
+@import './app/main/main.component.theme';
+
+@mixin themed-styles($theme, $typography) {
+    /* Include themed component mixins or theme dependent styles here */
+    @include main-component-theme($theme, $typography);
+}
+
+@mixin global-styles {
+    /* Add global styles here */
+}

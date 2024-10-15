@@ -1,0 +1,85 @@
+<div class="eca-actions">
+  <button
+    mat-flat-button
+    color="secondary"
+    disabled="false"
+    [routerLink]="['/', 'report-input']"
+  >
+    Back
+  </button>
+  <button [disabled]="this.inventoryForm.invalid" mat-flat-button color="primary" (click)="onSubmit()">Next</button>
+</div>
+
+<h2 style="font-style: italic; margin-bottom: 0;">Choose your report parameters and click Next!</h2>
+
+<div>
+    <form action="onSubmit()" [formGroup]="inventoryForm" class="inventory-form">
+      <!-- Call Number Type input -->
+       <mat-form-field>
+        <mat-label>Call Number Type</mat-label>
+        <mat-select formControlName="callNumberType">
+          <mat-option value="Dewey">Dewey Decimal</mat-option>
+          <mat-option value="LC">Library of Congress</mat-option>
+        </mat-select>
+       </mat-form-field>
+  
+      <!-- Desired library input -->
+      <mat-form-field>
+        <mat-label>Library</mat-label>
+        <mat-select formControlName="library" onchange="">
+          <mat-option *ngFor="let library of institutionLibraries" [value]="library.code">{{library.name}} ({{library.count}} items)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Scan Location Input -->
+      <mat-form-field>
+        <mat-label>Scan Location(s)</mat-label>
+        <mat-select formControlName="scanLocations" multiple>
+          <mat-option *ngFor="let scanLocation of scanLocations" [value]="scanLocation.code">{{scanLocation.name}} ({{scanLocation.count}} items)</mat-option>
+        </mat-select>
+       </mat-form-field>
+      
+       <!-- Primary Item Type Input -->
+      <mat-form-field>
+        <mat-label>Expected Item Type(s) for scanned location(s)</mat-label>
+        <mat-select formControlName="expectedItemTypes" multiple>
+          <mat-option *ngFor="let itemType of itemTypes" [value]="itemType.code">{{itemType.code}} ({{itemType.count}} items)</mat-option>
+        </mat-select>
+       </mat-form-field>
+
+       <!-- Primary Policy Type Input -->
+      <mat-form-field>
+        <mat-label>Expected Policy Type(s) for scanned location(s)</mat-label>
+        <mat-select formControlName="expectedPolicyTypes" multiple>
+          <mat-option *ngFor="let policyType of policyTypes" [value]="policyType.code">{{policyType.code}} ({{policyType.count}} items)</mat-option>
+        </mat-select>
+       </mat-form-field>
+
+       <!-- Which problems to report -->
+       <mat-form-field>
+        <mat-label>Limit Order Problems?</mat-label>
+        <mat-select formControlName="limitOrderProblems">
+          <mat-option value="no">No</mat-option>
+          <mat-option value="onlyOrder">Only CN Order problems</mat-option>
+          <mat-option value="onlyOther">Only problems other than CN Order</mat-option>
+        </mat-select>
+       </mat-form-field>
+
+       <!-- Report Only Problems input -->
+       <div class="inventory-form__field">
+        <label for="reportOnlyProblems">Report Only Problems?</label>
+        <mat-radio-group id="reportOnlyProblems" name="reportOnlyProblems" formControlName="reportOnlyProblems">
+          <mat-radio-button [value]="true">Yes</mat-radio-button>
+          <mat-radio-button [value]="false">No</mat-radio-button>
+        </mat-radio-group>
+       </div>
+
+       <div class="inventory-form__field">
+        <label for="sortBy">Sort By</label>
+        <mat-radio-group name="sortBy" id="sortBy" formControlName="sortBy">
+          <mat-radio-button value="actualOrder">Scanned Order</mat-radio-button>
+          <mat-radio-button value="correctOrder">Correct Order</mat-radio-button>
+        </mat-radio-group>
+       </div>
+    </form>
+  </div>

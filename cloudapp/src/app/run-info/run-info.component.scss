@@ -1,0 +1,27 @@
+.run-info {
+  border-radius: 5px;
+  border: 1px solid gray;
+  padding: 0.5rem 1rem;
+  padding-bottom: 1rem;
+  background-color:beige;
+
+  &__data {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+}
+
+.datapoint {
+  p {
+    margin-bottom: 3px;
+  }
+
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid grey;
+
+  &__name {
+    font-weight: bold;
+  }
+}
