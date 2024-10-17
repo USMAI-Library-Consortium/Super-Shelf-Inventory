@@ -57,7 +57,7 @@
         <div class="inventory-form__field">
             <label for="useCachedResultsInput">Reuse data?</label>
             <mat-radio-group
-                    name="useCachedResultsInput"
+                    id="useCachedResultsInput"
                     formControlName="useCachedResults"
             >
                 <mat-radio-button [value]="true">Yes</mat-radio-button>
@@ -69,4 +69,6 @@
             Clicking 'Next' will load data from Alma. Loading may take a few minutes
         </p>
     </form>
+
+    <button *ngIf="isAdmin$ | async" [routerLink]="['administration']" mat-flat-button color="secondary">Configure</button>
 </div>

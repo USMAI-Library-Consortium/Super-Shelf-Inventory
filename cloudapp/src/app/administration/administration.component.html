@@ -1,0 +1,54 @@
+<div class="eca-actions">
+    <button
+            mat-flat-button
+            color="secondary"
+            [disabled]="(loading$ | async)"
+            [routerLink]="['/']"
+    >
+        Back
+    </button>
+    <button
+            mat-flat-button
+            color="primary"
+            [disabled]="(loading$ | async) || !configurationForm"
+            (click)="onSubmit()"
+    >
+        Save
+    </button>
+</div>
+
+<h2>Postprocessing Administration - Set Options</h2>
+
+<div *ngIf="configurationForm; else loading">
+    <form action="onSubmit()" class="inventory-form"  [formGroup]="configurationForm">
+        <mat-form-field>
+            <mat-label>Mark As Inventoried Field</mat-label>
+            <mat-select formControlName="inventoryField">
+                <mat-option value="None">None</mat-option>
+                <mat-option value="internal_note_1">Internal Note 1</mat-option>
+                <mat-option value="internal_note_2">Internal Note 2</mat-option>
+                <mat-option value="internal_note_3">Internal Note 3</mat-option>
+                <mat-option value="statistics_note_3">Statistics Note 1</mat-option>
+                <mat-option value="statistics_note_3">Statistics Note 2</mat-option>
+                <mat-option value="statistics_note_3">Statistics Note 3</mat-option>
+                <mat-option value="inventory_date">Inventory Date</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <div class="inventory-form__field">
+            <label for="allowScanIn">Allow Scan-In</label>
+            <mat-radio-group id="allowScanIn" formControlName="allowScanIn">
+                <mat-radio-button [value]="true">Yes</mat-radio-button>
+                <mat-radio-button [value]="false">No</mat-radio-button>
+            </mat-radio-group>
+        </div>
+    </form>
+</div>
+
+<ng-template #loading>
+    <mat-progress-spinner
+            style="margin-bottom: 1rem;"
+            mode="indeterminate"
+            diameter="50"
+    ></mat-progress-spinner>
+</ng-template>

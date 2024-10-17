@@ -4,6 +4,7 @@ import {Router} from "@angular/router";
 import {AlmaJobService} from "../alma-job.service";
 import {StateService, PreviousRun} from "../state.service";
 import {BehaviorSubject, Subscription} from "rxjs";
+import {CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 
 @Component({
     selector: "app-barcode-input",
@@ -17,6 +18,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         false
     );
     loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
+    isAdmin$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
     private inputFileName: string = null;
     private firstBarcode: string = null;
@@ -24,12 +26,14 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
     private enableUseCachedResultsSubscription: Subscription;
     private loadingSubscription: Subscription;
+    private isAdminSubscription: Subscription;
 
     constructor(
         private fb: FormBuilder,
         private router: Router,
         private ajs: AlmaJobService,
-        private stateService: StateService
+        private stateService: StateService,
+        private eventsService: CloudAppEventsService
     ) {
     }
 
@@ -53,11 +57,16 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 ? this.barcodeForm.get("barcodeXLSXFile").disable()
                 : this.barcodeForm.get("barcodeXLSXFile").enable();
         });
+        this.eventsService.getInitData().subscribe(initData => {
+            this.isAdmin$.next(initData.user.isAdmin)
+        })
+
     }
 
     ngOnDestroy(): void {
         this.enableUseCachedResultsSubscription.unsubscribe();
         this.loadingSubscription.unsubscribe();
+        this.isAdminSubscription.unsubscribe();
     }
 
     onFileSelect(event: Event): void {
