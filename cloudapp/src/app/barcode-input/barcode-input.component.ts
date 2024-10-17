@@ -57,7 +57,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 ? this.barcodeForm.get("barcodeXLSXFile").disable()
                 : this.barcodeForm.get("barcodeXLSXFile").enable();
         });
-        this.eventsService.getInitData().subscribe(initData => {
+        this.isAdminSubscription = this.eventsService.getInitData().subscribe(initData => {
             this.isAdmin$.next(initData.user.isAdmin)
         })
 

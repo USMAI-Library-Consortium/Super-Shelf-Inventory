@@ -1,6 +1,6 @@
 import {Subscription} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {CloudAppRestService,} from "@exlibris/exl-cloudapp-angular-lib";
+import {CloudAppConfigService, CloudAppRestService,} from "@exlibris/exl-cloudapp-angular-lib";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {ParseReportService} from "../parse-report.service";
 import {ReportService} from "../report.service";
@@ -36,21 +36,23 @@ interface PolicyType {
 })
 export class ReportForm implements OnInit, OnDestroy {
     inventoryForm: FormGroup;
-    institutionLibraries: Library[] = [];
-    libraryCodeSubscription: Subscription;
 
+    institutionLibraries: Library[] = [];
     scanLocations: ScanLocation[] = [];
-    filteredScanLocations: ScanLocation[] = [];
     itemTypes: ItemType[] = [];
     policyTypes: PolicyType[] = [];
 
-    reportCompleteSubscription: Subscription
-    physicalItemsSubscription: Subscription
+    private filteredScanLocations: ScanLocation[] = [];
 
-    libraryDict: { [key: string]: number } = {};
-    locationDict: { [key: string]: number } = {};
-    itemTypeDict: { [key: string]: number } = {};
-    policyTypeDict: { [key: string]: number } = {};
+    private reportCompleteSubscription: Subscription
+    private libraryCodeSubscription: Subscription;
+    private physicalItemsSubscription: Subscription
+    private postprocessSubscription: Subscription
+
+    private libraryDict: { [key: string]: number } = {};
+    private locationDict: { [key: string]: number } = {};
+    private itemTypeDict: { [key: string]: number } = {};
+    private policyTypeDict: { [key: string]: number } = {};
 
     constructor(
         private restService: CloudAppRestService,
@@ -58,6 +60,7 @@ export class ReportForm implements OnInit, OnDestroy {
         private prs: ParseReportService,
         private reportService: ReportService,
         private router: Router,
+        private configurationService: CloudAppConfigService
     ) {
     }
 
@@ -71,9 +74,28 @@ export class ReportForm implements OnInit, OnDestroy {
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
             sortBy: ["correctOrder", Validators.required],
-            markAsInventoried: [false],
-            scanInItems: [false],
+            markAsInventoried: [false, Validators.required],
+            scanInItems: [false, Validators.required],
         });
+
+        this.inventoryForm.get("markAsInventoried").disable()
+        this.inventoryForm.get("scanInItems").disable()
+
+        this.postprocessSubscription = this.configurationService.get().subscribe(values => {
+            if (!values) {
+                console.log("Postprocess Not Configured")
+            } else {
+                if (values["inventoryField"] !== 'None') {
+                    this.inventoryForm.get("markAsInventoried").enable()
+                    console.log(`Marking Inventory Enabled - stored in ${values["inventoryField"]}`)
+                }
+                if (values["allowScanIn"]) {
+                    this.inventoryForm.get("scanInItems").enable()
+                    console.log(`Scanning In Items Enabled.`)
+                }
+
+            }
+        })
 
         // Watch for changes to the library to pull the locations for that library
         this.libraryCodeSubscription = this.inventoryForm
@@ -170,6 +192,7 @@ export class ReportForm implements OnInit, OnDestroy {
             this.reportCompleteSubscription.unsubscribe()
         }
         this.physicalItemsSubscription.unsubscribe()
+        this.postprocessSubscription.unsubscribe()
     }
 
     public onBack(): void {
