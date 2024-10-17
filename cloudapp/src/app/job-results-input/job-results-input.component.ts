@@ -9,11 +9,11 @@ import { ParseReportService } from "../parse-report.service";
 import { Router } from "@angular/router";
 
 @Component({
-  selector: "app-report-input",
-  templateUrl: "./report-input.component.html",
-  styleUrls: ["./report-input.component.scss"],
+  selector: "app-job-results-input",
+  templateUrl: "./job-results-input.component.html",
+  styleUrls: ["./job-results-input.component.scss"],
 })
-export class ReportInputComponent implements OnInit {
+export class JobResultsInputComponent implements OnInit {
   reportForm: FormGroup;
 
   constructor(
@@ -27,6 +27,11 @@ export class ReportInputComponent implements OnInit {
     this.reportForm = this.fb.group({
       reportFormInput: [null, Validators.required],
     });
+  }
+
+  onBack(): void {
+    this.ajs.reset()
+    this.router.navigate(["/"])
   }
 
   onSubmit() {

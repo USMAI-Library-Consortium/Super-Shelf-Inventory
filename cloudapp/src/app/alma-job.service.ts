@@ -1,5 +1,5 @@
 import {Injectable} from "@angular/core";
-import {AlertService, CloudAppRestService, HttpMethod,} from "@exlibris/exl-cloudapp-angular-lib";
+import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 import * as XLSX from "xlsx";
 import {from, ReplaySubject, Subject} from "rxjs";
 import {StateService} from "./state.service";
@@ -10,6 +10,7 @@ export interface RunJobOutput {
     setId: string;
     setName: string;
     reportIdentifier: string;
+    scanDate: string;
     date: string;
 }
 
@@ -22,8 +23,10 @@ export class AlmaJobService {
 
     // Data that this services parses and stores
     public fileName: string;
+    public fileLastModifiedDate: Date;
     private setId: string = null;
     private setName: string = null;
+    private scanDate: string = null;
     private reportIdentifier: string = null;
     barcodes: string[] = null;
 
@@ -38,10 +41,11 @@ export class AlmaJobService {
     ) {
         // Save the run information once it's done.
         this.loadComplete$.subscribe((runInfo) => {
-            if (runInfo) {
+            if (runInfo && runInfo.setId) {
                 this.stateService
                     .saveRun(this.fileName, runInfo.barcodes.length, runInfo[0], runInfo.reportIdentifier, runInfo.date)
                     .subscribe(() => {
+                        console.log("Run Information Saved.")
                         this.userMessages$.next("Run Information Saved.");
                     }, () => {
                         this.userMessages$.next("RUN INFO NOT SAVED.");
@@ -55,7 +59,16 @@ export class AlmaJobService {
         return this.loadComplete$.pipe(filter(runJobOutput => runJobOutput !== null))
     }
 
-    private checkJobProgress () {
+    public reset() {
+        this.loadComplete$.next(null)
+        this.excelFile = null
+        this.fileName = null
+        this.fileLastModifiedDate = null
+        this.scanDate = null
+        this.barcodes = null
+    }
+
+    private checkJobProgress() {
         setTimeout(() => {
             this.restService
                 .call({
@@ -71,6 +84,7 @@ export class AlmaJobService {
                             setName: this.setName,
                             reportIdentifier: this.reportIdentifier,
                             barcodes: this.barcodes,
+                            scanDate: this.scanDate,
                             date: this.stateService.stringifyDate(new Date())
                         })
                     } else {
@@ -83,11 +97,13 @@ export class AlmaJobService {
 
     public loadData(input: any): void {
         this.loadComplete$.next(null);
+        this.scanDate = input.scanDate
         if (input.hasOwnProperty("date")) {
             // This run has been completed previously
             this.loadComplete$.next({
                 barcodes: this.barcodes,
                 date: input.date,
+                scanDate: this.scanDate,
                 reportIdentifier: input.reportIdentifier,
                 setId: "",
                 setName: "",
@@ -193,8 +209,8 @@ export class AlmaJobService {
             })
             .subscribe((result) => {
                 this.userMessages$.next("Created set.");
-                console.log(`Created set with id ${result.id}`);
-                console.log("Adding members set, please wait up to a minute...");
+                this.userMessages$.next(`Created set with id ${result.id}`);
+                this.userMessages$.next("Adding members set, please wait up to a minute...");
                 this.restService
                     .call({
                         url: `/conf/sets/${result["id"]}?op=add_members&fail_on_invalid_id=false&id_type=BARCODE`,

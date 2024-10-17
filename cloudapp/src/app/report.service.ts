@@ -32,12 +32,10 @@ export class ReportService {
   reportProcessed$: ReplaySubject<ReportData | null> = new ReplaySubject(1)
   physicalItemsSubscription: Subscription = null
 
-  constructor(private prs: ParseReportService) {
-
-  }
+  constructor(private prs: ParseReportService) {}
 
   reset() {
-    this.physicalItemsSubscription.unsubscribe()
+    if (this.physicalItemsSubscription) this.physicalItemsSubscription.unsubscribe()
     this.reportProcessed$.next(null)
   }
 

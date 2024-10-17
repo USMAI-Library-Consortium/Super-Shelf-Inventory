@@ -1,20 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { InputformComponent } from './inputform.component';
+import { JobResultsInputComponent } from './job-results-input.component';
 
-describe('InputformComponent', () => {
-  let component: InputformComponent;
-  let fixture: ComponentFixture<InputformComponent>;
+describe('ReportInputComponent', () => {
+  let component: JobResultsInputComponent;
+  let fixture: ComponentFixture<JobResultsInputComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ InputformComponent ]
+      declarations: [ JobResultsInputComponent ]
     })
     .compileComponents();
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(InputformComponent);
+    fixture = TestBed.createComponent(JobResultsInputComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

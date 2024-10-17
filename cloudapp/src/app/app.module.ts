@@ -9,10 +9,10 @@ import { MaterialModule, CloudAppTranslateModule, AlertModule } from '@exlibris/
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { MainComponent } from './main/main.component';
-import { InputformComponent } from './inputform/inputform.component';
+import { ReportForm } from './report-form/report-form.component';
 import { BarcodeInputComponent } from './barcode-input/barcode-input.component';
 import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
-import { ReportInputComponent } from './report-input/report-input.component';
+import { JobResultsInputComponent } from './job-results-input/job-results-input.component';
 import { RunInfoComponent } from './run-info/run-info.component';
 import { ResultsComponent } from './results/results.component';
 
@@ -20,10 +20,10 @@ import { ResultsComponent } from './results/results.component';
   declarations: [
     AppComponent,
     MainComponent,
-    InputformComponent,
+    ReportForm,
     BarcodeInputComponent,
     LoadingScreenComponent,
-    ReportInputComponent,
+    JobResultsInputComponent,
     RunInfoComponent,
     ResultsComponent
   ],

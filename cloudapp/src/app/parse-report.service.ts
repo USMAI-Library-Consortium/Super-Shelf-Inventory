@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import * as Papa from 'papaparse'
-import {ReplaySubject} from 'rxjs';
+import {ReplaySubject, Subscription} from 'rxjs';
 import {AlmaJobService} from "./alma-job.service";
 import {filter, take} from "rxjs/operators";
 
@@ -16,6 +16,7 @@ export interface PhysicalItem {
     policyType: string | null,
     status: string | null,
     processType: string | null,
+    lastModifiedDate: Date | null,
     inTempLocation: boolean | null,
     requested: boolean | null
 }
@@ -25,9 +26,9 @@ export interface PhysicalItem {
 })
 export class ParseReportService {
     private loadComplete$: ReplaySubject<PhysicalItem[] | null> = new ReplaySubject(1)
+    private jobOutputSubscription: Subscription
 
-    constructor(private ajs: AlmaJobService) {
-    }
+    constructor(private ajs: AlmaJobService) {}
 
     public getParsedPhysicalItemsOnce() {
         return this.loadComplete$.pipe(filter(physicalItems => {
@@ -35,9 +36,14 @@ export class ParseReportService {
         }), take(1))
     }
 
+    public reset(){
+        this.loadComplete$.next(null)
+        if(this.jobOutputSubscription) this.jobOutputSubscription.unsubscribe()
+    }
+
     parseReport(file: Papa.LocalFile | string) {
         this.loadComplete$.next(null)
-        this.ajs.loadComplete$.pipe(filter(runJobOutput => {
+        this.jobOutputSubscription = this.ajs.loadComplete$.pipe(filter(runJobOutput => {
             return runJobOutput !== null
         }), take(1)).subscribe(runJobOutput => {
             Papa.parse(file, {
@@ -52,6 +58,7 @@ export class ParseReportService {
                             policyType: string,
                             status: string,
                             processType: string,
+                            lastModifiedDate: Date,
                             inTempLocation: boolean,
                             requested: boolean
                         }
@@ -67,6 +74,7 @@ export class ParseReportService {
                             policyType: row[" Policy"],
                             status: row["Status"],
                             processType: row["Process type"],
+                            lastModifiedDate: new Date(row["Modification Date"]),
                             inTempLocation: row["Temp library"] && row["Temp location"],
                             requested: row["Process type"] === "REQUESTED"
                         }
@@ -88,6 +96,7 @@ export class ParseReportService {
                                 itemMaterialType: data.itemMaterialType,
                                 status: data.status,
                                 processType: data.processType,
+                                lastModifiedDate: data.lastModifiedDate,
                                 inTempLocation: data.inTempLocation,
                                 requested: data.requested,
                             })
@@ -104,6 +113,7 @@ export class ParseReportService {
                                 itemMaterialType: null,
                                 status: null,
                                 processType: null,
+                                lastModifiedDate: null,
                                 inTempLocation: null,
                                 requested: null,
                             })
@@ -115,7 +125,5 @@ export class ParseReportService {
                 header: true // If your CSV has headers
             });
         })
-
-
     }
 }

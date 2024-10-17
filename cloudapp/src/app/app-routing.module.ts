@@ -1,15 +1,15 @@
 import { NgModule } from "@angular/core";
 import { Routes, RouterModule } from "@angular/router";
 import { BarcodeInputComponent } from "./barcode-input/barcode-input.component";
-import { InputformComponent } from "./inputform/inputform.component";
+import { ReportForm } from "./report-form/report-form.component";
 import { LoadingScreenComponent } from "./loading-screen/loading-screen.component";
-import { ReportInputComponent } from "./report-input/report-input.component";
+import { JobResultsInputComponent } from "./job-results-input/job-results-input.component";
 
 const routes: Routes = [
   { path: "", component: BarcodeInputComponent },
   { path: "loading", component: LoadingScreenComponent },
-  { path: "report-input", component: ReportInputComponent},
-  { path: "configure-report", component: InputformComponent }
+  { path: "job-results-input", component: JobResultsInputComponent},
+  { path: "configure-report", component: ReportForm }
 ];
 
 @NgModule({

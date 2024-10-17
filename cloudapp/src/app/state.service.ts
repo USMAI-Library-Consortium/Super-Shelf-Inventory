@@ -2,7 +2,6 @@ import {Injectable} from "@angular/core";
 import {CloudAppStoreService} from "@exlibris/exl-cloudapp-angular-lib";
 import {Observable, ReplaySubject} from "rxjs";
 import {map} from "rxjs/operators";
-import {RunJobOutput} from "./alma-job.service";
 
 export interface RunInput {
   inputFileName: string;
@@ -23,7 +22,9 @@ export interface PreviousRun extends PreviousRunInput {
 })
 export class StateService {
   private previousRuns: PreviousRun[] = null
-  // Emit true if finished successfully, else False
+
+  // Simply emits when the state service is ready. Once initialized it should be ready for
+  // the whole time the user is using the application - it should not need to be reset.
   private loadComplete: ReplaySubject<void> = new ReplaySubject<void>(1);
 
   constructor(private storeService: CloudAppStoreService) {
@@ -79,8 +80,8 @@ export class StateService {
       date
     };
 
-    const newRuns = [...this.previousRuns, runToSave]
-    return this.storeService.set("history", JSON.stringify(newRuns)).pipe(map(results => void 0))
+    this.previousRuns = [...this.previousRuns, runToSave]
+    return this.storeService.set("history", JSON.stringify(this.previousRuns)).pipe(map(results => void 0))
   }
 
   private cleanPreviousRuns(previousRuns: PreviousRun[]): PreviousRun[] {

@@ -2,6 +2,10 @@
     display: flex;
     flex-direction: column;
 
+    &__sectionhead {
+        text-decoration: underline;
+    }
+
     &__field {
         display: flex;
         align-items: center;

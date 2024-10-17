@@ -27,7 +27,7 @@ export class LoadingScreenComponent implements OnInit, OnDestroy{
       return runJobOutput !== null
     })).subscribe((output) => {
       console.log("Loading data complete.")
-      this.router.navigate(["report-input"]);
+      this.router.navigate(["job-results-input"]);
     });
   }
 

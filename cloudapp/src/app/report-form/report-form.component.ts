@@ -4,6 +4,8 @@ import {CloudAppRestService,} from "@exlibris/exl-cloudapp-angular-lib";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {ParseReportService} from "../parse-report.service";
 import {ReportService} from "../report.service";
+import {Router} from "@angular/router";
+import {filter} from "rxjs/operators";
 
 interface Library {
     name: string;
@@ -28,11 +30,11 @@ interface PolicyType {
 }
 
 @Component({
-    selector: "app-inputform",
-    templateUrl: "./inputform.component.html",
-    styleUrls: ["./inputform.component.scss"],
+    selector: "app-report-form",
+    templateUrl: "./report-form.component.html",
+    styleUrls: ["./report-form.component.scss"],
 })
-export class InputformComponent implements OnInit, OnDestroy {
+export class ReportForm implements OnInit, OnDestroy {
     inventoryForm: FormGroup;
     institutionLibraries: Library[] = [];
     libraryCodeSubscription: Subscription;
@@ -54,7 +56,8 @@ export class InputformComponent implements OnInit, OnDestroy {
         private restService: CloudAppRestService,
         private fb: FormBuilder,
         private prs: ParseReportService,
-        private reportService: ReportService
+        private reportService: ReportService,
+        private router: Router,
     ) {
     }
 
@@ -67,7 +70,9 @@ export class InputformComponent implements OnInit, OnDestroy {
             expectedPolicyTypes: [[], Validators.required],
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
-            sortBy: ["actualOrder", Validators.required]
+            sortBy: ["correctOrder", Validators.required],
+            markAsInventoried: [false],
+            scanInItems: [false],
         });
 
         // Watch for changes to the library to pull the locations for that library
@@ -167,9 +172,17 @@ export class InputformComponent implements OnInit, OnDestroy {
         this.physicalItemsSubscription.unsubscribe()
     }
 
+    public onBack(): void {
+        this.prs.reset()
+        this.reportService.reset()
+        this.router.navigate(['/', 'job-results-input'])
+    }
+
     public onSubmit() {
         if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
-        this.reportCompleteSubscription = this.reportService.reportProcessed$.subscribe(reportData => {
+        this.reportCompleteSubscription = this.reportService.reportProcessed$.pipe(filter(reportData => {
+            return reportData !== null
+        })).subscribe(reportData => {
             this.reportService.generateExcel(reportData)
         })
         const callNumberType = this.inventoryForm.get("callNumberType").value

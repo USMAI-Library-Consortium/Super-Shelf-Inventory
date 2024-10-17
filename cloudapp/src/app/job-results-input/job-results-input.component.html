@@ -2,7 +2,7 @@
     <button
             mat-flat-button
             color="secondary"
-            [routerLink]="['/']"
+            (click)="onBack()"
     >
         Back
     </button>
@@ -10,7 +10,7 @@
             mat-flat-button
             color="primary"
             (click)="onSubmit()"
-            [disabled]="!(this.ajs.loadComplete$ | async)"
+            [disabled]="!(this.ajs.loadComplete$ | async) || this.reportForm.invalid"
     >
         Next
     </button>
