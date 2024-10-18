@@ -10,7 +10,7 @@ export interface RunInput {
 }
 
 export interface PreviousRunInput extends RunInput {
-  reportIdentifier: string;
+  dataExtractUrl: string;
 }
 
 export interface PreviousRun extends PreviousRunInput {
@@ -71,12 +71,12 @@ export class StateService {
     );
   }
 
-  public saveRun(inputFileName: string, numberOfRecords: number, firstBarcode: string, reportIdentifier: string, date: string): Observable<void> {
+  public saveRun(inputFileName: string, numberOfRecords: number, firstBarcode: string, dataExtractUrl: string, date: string): Observable<void> {
     const runToSave: PreviousRun = {
       inputFileName,
       numberOfRecords,
       firstBarcode,
-      reportIdentifier,
+      dataExtractUrl: dataExtractUrl,
       date
     };
 

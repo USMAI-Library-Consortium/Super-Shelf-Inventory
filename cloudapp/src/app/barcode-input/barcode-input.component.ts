@@ -94,6 +94,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                                 this.loading$.next(false);
                                 this.inputFileName = input.files[0].name;
                                 this.firstBarcode = barcodes[0];
+                                console.log(result)
                                 if (result) {
                                     this.enableUseCachedResults$.next(true);
                                     this.previousRun = result;

@@ -13,8 +13,9 @@ import { Router } from "@angular/router";
   templateUrl: "./job-results-input.component.html",
   styleUrls: ["./job-results-input.component.scss"],
 })
-export class JobResultsInputComponent implements OnInit {
+export class JobResultsInputComponent implements OnInit, OnDestroy {
   reportForm: FormGroup;
+  jobResultsSub: Subscription;
 
   constructor(
       public ajs: AlmaJobService,
@@ -27,6 +28,14 @@ export class JobResultsInputComponent implements OnInit {
     this.reportForm = this.fb.group({
       reportFormInput: [null, Validators.required],
     });
+
+    this.jobResultsSub = this.ajs.loadComplete$.subscribe((result) => {
+      console.log(result);
+    })
+  }
+
+  ngOnDestroy(): void {
+    this.jobResultsSub.unsubscribe();
   }
 
   onBack(): void {

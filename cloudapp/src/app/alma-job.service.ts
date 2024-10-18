@@ -9,7 +9,7 @@ export interface RunJobOutput {
     barcodes: string[]
     setId: string;
     setName: string;
-    reportIdentifier: string;
+    dataExtractUrl: string;
     scanDate: string;
     date: string;
 }
@@ -70,7 +70,7 @@ export class AlmaJobService implements OnDestroy {
         this.loadComplete$.subscribe((runInfo) => {
             if (runInfo && runInfo.setId) {
                 this.stateService
-                    .saveRun(this.fileName, runInfo.barcodes.length, runInfo.barcodes[0], runInfo.reportIdentifier, runInfo.date)
+                    .saveRun(this.fileName, runInfo.barcodes.length, runInfo.barcodes[0], runInfo.dataExtractUrl, runInfo.date)
                     .subscribe(() => {
                         console.log("Run Information Saved.")
                         this.userMessages$.next("Run Information Saved.");
@@ -103,6 +103,7 @@ export class AlmaJobService implements OnDestroy {
     }
 
     public reset() {
+        console.log("Resetting AJS")
         this.loadComplete$.next(null)
         this.excelFile = null
         this.fileName = null
@@ -146,17 +147,19 @@ export class AlmaJobService implements OnDestroy {
         this.loadComplete$.next(null);
         this.scanDate = input.scanDate
         if (input.hasOwnProperty("date")) {
+            console.log("Using Previous Run.")
             // This run has been completed previously
-            this.loadComplete$.next({
+            const runInfo: RunJobOutput = {
                 barcodes: this.barcodes,
                 date: input.date,
                 scanDate: this.scanDate,
-                reportIdentifier: input.dataExtractUrl,
+                dataExtractUrl: input.this.dataExtractUrl,
                 setId: "",
                 setName: "",
-            });
+            }
+            this.loadComplete$.next(runInfo);
         } else {
-            this.createSet(true).subscribe(_ => {
+            this.createSet().subscribe(_ => {
                 this.runJobOnSet()
             });
         }
@@ -165,7 +168,7 @@ export class AlmaJobService implements OnDestroy {
     public postprocess(inventoryField: string | null, scanInItems: boolean) {
         if (inventoryField) {
             if (!this.setId) {
-                this.createSet(false).subscribe(result => {
+                this.createSet().subscribe(result => {
                     this.markAsInventoried(inventoryField).subscribe(result => {
                         this.markAsInventoriedComplete$.next({
                             wasRun: true,
@@ -961,7 +964,7 @@ export class AlmaJobService implements OnDestroy {
                     this.loadComplete$.next({
                         setId: this.setId,
                         setName: this.setName,
-                        reportIdentifier: this.dataExtractUrl,
+                        dataExtractUrl: this.dataExtractUrl,
                         barcodes: this.barcodes,
                         scanDate: this.scanDate,
                         date: this.stateService.stringifyDate(new Date()),
@@ -970,7 +973,7 @@ export class AlmaJobService implements OnDestroy {
             });
     }
 
-    private createSet(runJob: boolean) {
+    private createSet() {
         const currentDate = new Date();
         const timestamp = `${
             currentDate.getMonth() + 1
