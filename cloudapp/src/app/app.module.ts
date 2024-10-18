@@ -16,6 +16,7 @@ import { JobResultsInputComponent } from './job-results-input/job-results-input.
 import { RunInfoComponent } from './run-info/run-info.component';
 import { ResultsComponent } from './results/results.component';
 import { AdministrationComponent } from './administration/administration.component';
+import { ReportLoadingComponent } from './report-loading/report-loading.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { AdministrationComponent } from './administration/administration.compone
     JobResultsInputComponent,
     RunInfoComponent,
     ResultsComponent,
-    AdministrationComponent
+    AdministrationComponent,
+    ReportLoadingComponent
   ],
   imports: [
     MaterialModule,

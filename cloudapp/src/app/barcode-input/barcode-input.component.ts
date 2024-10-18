@@ -83,7 +83,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
             this.ajs.parseExcelFile().subscribe(
                 (barcodes) => {
                     if (barcodes) {
-                        this.barcodeForm.get("scanDate").setValue(this.ajs.fileLastModifiedDate);
+                        this.barcodeForm.get("scanDate").setValue(this.ajs.fileLastModifiedDate)
                         this.stateService
                             .checkIfCachedResults({
                                 numberOfRecords: barcodes.length,

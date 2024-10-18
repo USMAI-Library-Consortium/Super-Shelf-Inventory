@@ -48,6 +48,7 @@ export class ReportForm implements OnInit, OnDestroy {
     private libraryCodeSubscription: Subscription;
     private physicalItemsSubscription: Subscription
     private postprocessSubscription: Subscription
+    private markAsInventoriedField: string | null = null;
 
     private libraryDict: { [key: string]: number } = {};
     private locationDict: { [key: string]: number } = {};
@@ -87,7 +88,10 @@ export class ReportForm implements OnInit, OnDestroy {
             } else {
                 if (values["inventoryField"] !== 'None') {
                     this.inventoryForm.get("markAsInventoried").enable()
+                    this.markAsInventoriedField = values["inventoryField"];
                     console.log(`Marking Inventory Enabled - stored in ${values["inventoryField"]}`)
+                } else {
+                    this.markAsInventoriedField = null
                 }
                 if (values["allowScanIn"]) {
                     this.inventoryForm.get("scanInItems").enable()
@@ -203,11 +207,6 @@ export class ReportForm implements OnInit, OnDestroy {
 
     public onSubmit() {
         if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
-        this.reportCompleteSubscription = this.reportService.reportProcessed$.pipe(filter(reportData => {
-            return reportData !== null
-        })).subscribe(reportData => {
-            this.reportService.generateExcel(reportData)
-        })
         const callNumberType = this.inventoryForm.get("callNumberType").value
         const library = this.inventoryForm.get("library").value
         const scanLocations = this.inventoryForm.get("scanLocations").value
@@ -216,7 +215,10 @@ export class ReportForm implements OnInit, OnDestroy {
         const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
         const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
         const sortBy = this.inventoryForm.get("sortBy").value
-        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy)
+        const markAsInventoried = this.inventoryForm.get("markAsInventoried").value ? this.markAsInventoriedField : null
+        const scanInItems = this.inventoryForm.get("scanInItems").value
+        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems)
+        this.router.navigate(["/", 'report-loading'])
     }
 
     public onSelectNewLibrary(libraryCode: string) {
