@@ -3,7 +3,7 @@ import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloud
 import * as XLSX from "xlsx";
 import {combineLatest, from, Observable, of, ReplaySubject, Subject, timer} from "rxjs";
 import {StateService} from "./state.service";
-import {catchError, filter, map, switchMap, takeWhile, tap} from "rxjs/operators";
+import {catchError, filter, map, switchMap, take, takeWhile, tap} from "rxjs/operators";
 
 export interface RunJobOutput {
     barcodes: string[]
@@ -48,17 +48,16 @@ export class AlmaJobService implements OnDestroy {
     private setName: string = null;
     private scanDate: string = null;
     private dataExtractUrl: string = null;
-    private markAsInventoriedJobUrl: string = null;
 
     // To aid with external logic.
-    loadComplete$: ReplaySubject<RunJobOutput | null> = new ReplaySubject(1)
-    userMessages$: Subject<string> = new Subject();
+    public loadComplete$: ReplaySubject<RunJobOutput | null> = new ReplaySubject(1)
+    public userMessages$: Subject<string> = new Subject();
 
     // Postprocessing internal variables
     private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults> = new ReplaySubject()
     private scanInComplete$: ReplaySubject<ScanInResults> = new ReplaySubject()
+    private postprocessCompleteObservable$: Observable<PostprocessResults> = new Observable()
 
-    public postprocessCompleteObservable$: Observable<PostprocessResults> = new Observable()
     public postprocessComplete$: ReplaySubject<PostprocessResults> = new ReplaySubject()
 
     constructor(
@@ -139,7 +138,9 @@ export class AlmaJobService implements OnDestroy {
                     this.userMessages$.next(`Job progress is ${result["progress"]}%`);
                 }
             }),
-            takeWhile((result) => result["progress"] < 100, true) // Continue until progress is 100
+            filter((result) => result["progress"] === 100),
+            tap(() => this.userMessages$.next(`Job completed!`)),
+            take(1)
         );
     }
 
@@ -153,13 +154,15 @@ export class AlmaJobService implements OnDestroy {
                 barcodes: this.barcodes,
                 date: input.date,
                 scanDate: this.scanDate,
-                dataExtractUrl: input.this.dataExtractUrl,
+                dataExtractUrl: input.dataExtractUrl,
                 setId: "",
                 setName: "",
             }
             this.loadComplete$.next(runInfo);
         } else {
+            console.log("Starting new run.")
             this.createSet().subscribe(_ => {
+                this.userMessages$.next("Running Job...")
                 this.runJobOnSet()
             });
         }
@@ -907,7 +910,6 @@ export class AlmaJobService implements OnDestroy {
                     ""
                 )} started.`
             );
-            this.markAsInventoriedJobUrl = (result["additional_info"]["link"] as string).replace("/almaws/v1", "")
         }))
     }
 
@@ -974,6 +976,7 @@ export class AlmaJobService implements OnDestroy {
     }
 
     private createSet() {
+        this.userMessages$.next("Creating Set...")
         const currentDate = new Date();
         const timestamp = `${
             currentDate.getMonth() + 1

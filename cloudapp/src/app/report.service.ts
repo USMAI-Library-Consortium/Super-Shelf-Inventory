@@ -10,14 +10,22 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
     callSort: string | null;
     actualLocation: number | null,
     correctLocation: number | null,
-    problemList: string[]
+    hasOrderProblem: string | null,
+    hasTemporaryLocationProblem: string | null,
+    hasLibraryProblem: string | null,
+    hasRequestProblem: string | null,
+    hasTypeProblem: string | null,
+    hasLocationProblem: string | null,
+    hasNotInPlaceProblem: string | null,
+    hasPolicyProblem: string | null,
 }
 
 interface ReportData {
     outputFilename: string,
     reportOnlyProblems: boolean,
+    orderProblemLimit: string,
     orderProblemCount: number,
-    tempProblemCount: number,
+    temporaryLocationProblemCount: number,
     libraryProblemCount: number,
     requestProblemCount: number,
     policyProblemCount: number,
@@ -71,6 +79,7 @@ export class ReportService {
             let requestProblemCount = 0
             let policyProblemCount = 0
             let typeProblemCount = 0
+            let notInPlaceProblemCount = 0
             const unsorted: ProcessedPhysicalItem[] = []
 
             let rowNum = 1
@@ -81,7 +90,14 @@ export class ReportService {
                     callSort: null,
                     actualLocation: null,
                     correctLocation: null,
-                    problemList: []
+                    hasLibraryProblem: null,
+                    hasLocationProblem: null,
+                    hasTemporaryLocationProblem: null,
+                    hasOrderProblem: null,
+                    hasRequestProblem: null,
+                    hasTypeProblem: null,
+                    hasPolicyProblem: null,
+                    hasNotInPlaceProblem: null,
                 }
                 return processedPhysicalItem
             }).forEach(item => {
@@ -131,22 +147,22 @@ export class ReportService {
 
                     if (!itemIsInTheCorrectAbsolutePosition) {
                         if (itemInCorrectRelativePosition) {
-                            item.problemList.push("**Bad section continued**")
+                            item.hasOrderProblem = "**Out Of Order section continued**"
                         }
 
                         const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
                         if (isRogueItem) {
-                            item.problemList.push(`**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`)
+                            item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
                         }
 
                         const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
                         if (isFirstItemOfBadSection) {
-                            item.problemList.push(`**OUT OF ORDER - BAD SECTION START**; should be after '${correctPreviousItemCallNum}'`)
+                            item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
                         }
 
                         const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
                         if (isLastItemOfBadSection) {
-                            item.problemList.push(`**OUT OF ORDER - END BAD SECTION**; next item should be '${correctNextItemCallNum}'`)
+                            item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
                         }
                         item.hasProblem = true;
                     }
@@ -155,40 +171,42 @@ export class ReportService {
                 // Flag other issues unless "Only CN Order problems" is requested.
                 if (orderProblemLimit !== "onlyOrder") {
                     // Does not calculate wrong call number issues.
+
                     if (item.status !== "Item in place") {
                         item.hasProblem = true
-                        item.problemList.push(`**Not In Place: ${item.processType}**`)
+                        item.hasNotInPlaceProblem = `**Not In Place: ${item.processType}**`
+                        notInPlaceProblemCount += 1
                     }
 
                     if (item.inTempLocation) {
                         item.hasProblem = true
-                        item.problemList.push("**IN TEMP LOC**")
+                        item.hasTemporaryLocationProblem = "**IN TEMP LOC**"
                         tempProblemCount += 1
                     }
 
                     if (item.requested) {
                         item.hasProblem = true
-                        item.problemList.push("**ITEM HAS REQUEST**")
+                        item.hasRequestProblem = "**ITEM HAS REQUEST**"
                         requestProblemCount += 1
                     }
 
                     if (!locationCodes.includes(item.location)) {
                         item.hasProblem = true
-                        item.problemList.push(`**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`)
+                        item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
                         locationProblemCount += 1
                     }
 
                     if (item.library !== libraryCode) {
                         item.hasProblem = true
-                        item.problemList.push(`**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`)
+                        item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
                         libraryProblemCount += 1
                     }
 
                     if (expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)) {
                         if (item.policyType != "") {
-                            item.problemList.push(`**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`)
+                            item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`
                         } else {
-                            item.problemList.push("**BLANK ITEM POLICY**")
+                            item.hasPolicyProblem = "**BLANK ITEM POLICY**"
                         }
                         item.hasProblem = true
                         policyProblemCount += 1
@@ -196,9 +214,9 @@ export class ReportService {
 
                     if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
                         if (item.itemMaterialType !== "") {
-                            item.problemList.push(`**WRONG TYPE: ${item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`)
+                            item.hasTypeProblem = `**WRONG TYPE: ${item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
                         } else {
-                            item.problemList.push("**BLANK ITEM MATERIAL TYPE**")
+                            item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
                         }
                         item.hasProblem = true
                         typeProblemCount += 1
@@ -214,8 +232,9 @@ export class ReportService {
             this.reportProcessed$.next({
                 outputFilename,
                 reportOnlyProblems,
+                orderProblemLimit,
                 orderProblemCount,
-                tempProblemCount,
+                temporaryLocationProblemCount: tempProblemCount,
                 libraryProblemCount,
                 requestProblemCount,
                 locationProblemCount,
@@ -232,19 +251,41 @@ export class ReportService {
     }
 
     generateExcel(reportData: ReportData) {
-        const formattedReport = reportData.items.map(item => {
-            return {
+        const formattedReport = reportData.items.filter((item) => {
+            if (reportData.reportOnlyProblems) {
+                return item.hasProblem
+            } else return true
+        }).map(item => {
+            let reportCols: object = {
                 "Barcode": item.barcode,
                 "Correct Position": item.correctLocation,
                 "Actual Position": item.actualLocation,
                 "Call Number": item.callNumber,
                 "Normalized Call Number": item.callSort,
                 "Title": item.title,
-                "Problems": item.problemList.join(", ")
             }
-        }).filter(row => {
-            if (reportData.reportOnlyProblems && !row["Problems"]) return null
-            return row
+
+            if (!(reportData.orderProblemLimit === "onlyOther")) {
+                reportCols = {
+                    ...reportCols,
+                    "Order Issues": item.hasOrderProblem
+                }
+            }
+
+            if (!(reportData.orderProblemLimit === "onlyOrder")) {
+                reportCols = {
+                    ...reportCols,
+                    "Wrong Library Problem": item.hasLibraryProblem,
+                    "Wrong Location Problem": item.hasLocationProblem,
+                    "Not In Place Problem": item.hasNotInPlaceProblem,
+                    "In Temporary Location Problem": item.hasTemporaryLocationProblem,
+                    "Policy Problem": item.hasPolicyProblem,
+                    "Has Active Request": item.hasRequestProblem,
+                    "Item Material Type Problem": item.hasTypeProblem,
+                }
+            }
+
+            return reportCols
         })
         const worksheet = XLSX.utils.json_to_sheet(formattedReport)
 
@@ -256,7 +297,14 @@ export class ReportService {
             {wch: 25},  // Call Number column width
             {wch: 30},  // Normalized Call Number column width
             {wch: 50},  // Title column width
-            {wch: 50},  // Problems column width
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
+            {wch: 30},
         ];
 
         const workbook: XLSX.WorkBook = {

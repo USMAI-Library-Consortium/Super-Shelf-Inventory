@@ -7,5 +7,30 @@
 }
 
 @mixin global-styles {
-    /* Add global styles here */
+    .inventory-form {
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+
+        &__sectionhead {
+            text-decoration: underline;
+        }
+
+        &__field {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: .5rem;
+        }
+
+        &__instructions {
+            line-height: normal;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        &__submit-button {
+            margin-top: .5rem;
+        }
+    }
 }
