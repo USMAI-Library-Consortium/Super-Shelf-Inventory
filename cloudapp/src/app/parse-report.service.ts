@@ -8,6 +8,10 @@ export interface PhysicalItem {
     barcode: string,
     existsInAlma: boolean,
 
+    mmsId: string | null,
+    holdingId: string | null,
+    pid: string | null,
+
     title: string | null,
     callNumber: string | null
     library: string | null,
@@ -52,6 +56,9 @@ export class ParseReportService {
                         [key: string]: {
                             title: string,
                             callNumber: string,
+                            mmsId: string,
+                            holdingId: string,
+                            pid: string,
                             library: string,
                             location: string,
                             itemMaterialType: string,
@@ -68,13 +75,16 @@ export class ParseReportService {
                         dataLookup[row[" Barcode"]] = {
                             title: row[" Title"],
                             callNumber: row[" Call Number"],
+                            mmsId: row["MMS Record ID"],
+                            holdingId: row["HOL Record ID"],
+                            pid: row["Item PID"],
                             library: row[" Local Location"],
                             location: row[" Permanent Physical Location"],
                             itemMaterialType: row[" Item Material Type"],
                             policyType: row[" Policy"],
                             status: row["Status"],
                             processType: row["Process type"],
-                            lastModifiedDate: new Date(row["Modification Date"]),
+                            lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]) : null,
                             inTempLocation: row["Temp library"] && row["Temp location"],
                             requested: row["Process type"] === "REQUESTED"
                         }
@@ -89,6 +99,9 @@ export class ParseReportService {
                                 barcode,
                                 existsInAlma: true,
                                 title: data.title,
+                                mmsId: data.mmsId?.replace("'", ""),
+                                holdingId: data.holdingId?.replace("'", ""),
+                                pid: data.pid?.replace("'", ""),
                                 callNumber: data.callNumber,
                                 library: data.library,
                                 location: data.location,
@@ -106,6 +119,9 @@ export class ParseReportService {
                                 barcode,
                                 existsInAlma: false,
                                 title: null,
+                                mmsId: null,
+                                holdingId: null,
+                                pid: null,
                                 callNumber: null,
                                 library: null,
                                 location: null,

@@ -5,7 +5,7 @@ import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {ParseReportService} from "../parse-report.service";
 import {ReportService} from "../report.service";
 import {Router} from "@angular/router";
-import {filter} from "rxjs/operators";
+import {AlmaJobService} from "../alma-job.service";
 
 interface Library {
     name: string;
@@ -17,6 +17,11 @@ interface ScanLocation {
     name: string;
     code: string;
     count: number;
+}
+
+interface CircDesk {
+    name: string;
+    code: string;
 }
 
 interface ItemType {
@@ -41,6 +46,7 @@ export class ReportForm implements OnInit, OnDestroy {
     scanLocations: ScanLocation[] = [];
     itemTypes: ItemType[] = [];
     policyTypes: PolicyType[] = [];
+    circDesks: CircDesk[] = [];
 
     private filteredScanLocations: ScanLocation[] = [];
 
@@ -48,6 +54,8 @@ export class ReportForm implements OnInit, OnDestroy {
     private libraryCodeSubscription: Subscription;
     private physicalItemsSubscription: Subscription
     private postprocessSubscription: Subscription
+    private locationSubscription: Subscription;
+    private circDeskSubscription: Subscription;
     private markAsInventoriedField: string | null = null;
 
     private libraryDict: { [key: string]: number } = {};
@@ -61,7 +69,8 @@ export class ReportForm implements OnInit, OnDestroy {
         private prs: ParseReportService,
         private reportService: ReportService,
         private router: Router,
-        private configurationService: CloudAppConfigService
+        private configurationService: CloudAppConfigService,
+        private ajs: AlmaJobService, // Only imported to get the scan date.
     ) {
     }
 
@@ -77,10 +86,25 @@ export class ReportForm implements OnInit, OnDestroy {
             sortBy: ["correctOrder", Validators.required],
             markAsInventoried: [false, Validators.required],
             scanInItems: [false, Validators.required],
+            circDesk: [null],
         });
 
         this.inventoryForm.get("markAsInventoried").disable()
         this.inventoryForm.get("scanInItems").disable()
+        this.inventoryForm.get("circDesk").disable()
+
+        this.inventoryForm.get("scanInItems").valueChanges.subscribe(scanIn => {
+            const circDeskInput = this.inventoryForm.get("circDesk");
+            if (scanIn) {
+                circDeskInput.enable()
+                circDeskInput.setValidators([Validators.required])
+            } else {
+                circDeskInput.clearValidators()
+                circDeskInput.disable()
+                circDeskInput.setValue(null)
+            }
+            circDeskInput.updateValueAndValidity()
+        })
 
         this.postprocessSubscription = this.configurationService.get().subscribe(values => {
             if (!values) {
@@ -195,6 +219,8 @@ export class ReportForm implements OnInit, OnDestroy {
         if (this.reportCompleteSubscription) {
             this.reportCompleteSubscription.unsubscribe()
         }
+        if (this.circDeskSubscription) this.circDeskSubscription.unsubscribe()
+        if (this.locationSubscription) this.locationSubscription.unsubscribe()
         this.physicalItemsSubscription.unsubscribe()
         this.postprocessSubscription.unsubscribe()
     }
@@ -210,6 +236,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const callNumberType = this.inventoryForm.get("callNumberType").value
         const library = this.inventoryForm.get("library").value
         const scanLocations = this.inventoryForm.get("scanLocations").value
+        const circDesk = this.inventoryForm.get("circDesk").value
         const expectedItemTypes = this.inventoryForm.get("expectedItemTypes").value
         const expectedPolicyTypes = this.inventoryForm.get("expectedPolicyTypes").value
         const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
@@ -217,12 +244,15 @@ export class ReportForm implements OnInit, OnDestroy {
         const sortBy = this.inventoryForm.get("sortBy").value
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
-        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems)
+        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems, circDesk, new Date(this.ajs.scanDate))
         this.router.navigate(["/", 'report-loading'])
     }
 
     public onSelectNewLibrary(libraryCode: string) {
-        this.restService
+        this.filteredScanLocations = []
+        this.scanLocations = []
+        this.circDesks = []
+        this.locationSubscription = this.restService
             .call(`/almaws/v1/conf/libraries/${libraryCode}/locations`)
             .subscribe((locationsData) => {
                 locationsData.location.forEach((location) => {
@@ -244,15 +274,16 @@ export class ReportForm implements OnInit, OnDestroy {
                         );
                 });
             });
-    }
 
-    public filterScanLocations(): void {
-        const filterValue = this.inventoryForm
-            .get("scanLocation")
-            .value.toLowerCase();
-        this.filteredScanLocations = this.scanLocations.filter((sl) =>
-            sl.name.toLowerCase().includes(filterValue)
-        );
+        this.circDeskSubscription = this.restService.call(`/almaws/v1/conf/libraries/${libraryCode}/circ-desks`).subscribe(circDesksData => {
+            console.log(circDesksData)
+            circDesksData.circ_desk.forEach((circDesk) => {
+                this.circDesks.push({
+                    code: circDesk.code,
+                    name: circDesk.name
+                });
+            })
+        })
     }
 
     private parseLibraries(libraryJson: any | undefined): Library[] {

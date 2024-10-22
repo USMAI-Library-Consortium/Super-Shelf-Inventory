@@ -26,6 +26,7 @@
     "papaparse": "^5.4.1",
     "rxjs": "~6.5.5",
     "xlsx": "^0.18.5",
+    "xlsx-style": "^0.8.13",
     "zone.js": "~0.10.3"
   },
   "devDependencies": {

@@ -10,10 +10,30 @@
     <button mat-flat-button color="primary" (click)="onSubmit()">Done</button>
 </div>
 
-<div class="results-container">
+<div *ngIf="this.reportService.getLatestReport() | async as reportData" class="results-container">
     <h2>Run Results</h2>
     <div class="results-container__download-container">
         <p>Download Report</p>
         <button (click)="downloadReport()" mat-flat-button color="primary">Download</button>
     </div>
+    <br>
+    <h2>Problem Summary</h2>
+    <span *ngIf="reportData.orderProblemLimit !== 'onlyOther'">
+        <p>Order Issues: {{ reportData.orderProblemCount }}</p>
+    </span>
+    <span *ngIf="reportData.orderProblemLimit !== 'onlyOrder'">
+        <p>Wrong Library: {{ reportData.libraryProblemCount }}</p>
+        <p>Wrong Location: {{ reportData.locationProblemCount }}</p>
+        <p>Policy Issue: {{ reportData.policyProblemCount }}</p>
+        <p>Items With Requests: {{ reportData.requestProblemCount }}</p>
+        <p>Items Not In Place: {{ reportData.notInPlaceProblemCount }}</p>
+        <p>Item Type Issues: {{ reportData.typeProblemCount }}</p>
+    </span>
+    <br>
+    <h2>Post Processing Results</h2>
+    <span *ngIf="ajs.postprocessComplete$ | async as postprocessResults">
+            <p>Items Scanned In: {{postprocessResults.itemsScannedIn}} {{postprocessResults.scanInWasRun ? '' : '(not run)'}}</p>
+            <p>Items Failed Scanned In: {{postprocessResults.itemsFailedScanIn}} {{postprocessResults.scanInWasRun ? '' : '(not run)'}}</p>
+            <p>Marked As Inventoried: {{postprocessResults.markAsInventoriedWasRun ? 'yes - in ' + reportData.markAsInventoriedField : 'no' + reportData.markAsInventoriedField ? '' : ' (not run)' }}</p>
+    </span>
 </div>

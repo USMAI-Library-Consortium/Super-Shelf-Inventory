@@ -1,9 +1,10 @@
 import {Injectable, OnDestroy} from "@angular/core";
 import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 import * as XLSX from "xlsx";
-import {combineLatest, from, Observable, of, ReplaySubject, Subject, timer} from "rxjs";
+import {combineLatest, forkJoin, from, Observable, of, ReplaySubject, Subject, timer} from "rxjs";
 import {StateService} from "./state.service";
-import {catchError, filter, map, switchMap, take, takeWhile, tap} from "rxjs/operators";
+import {catchError, filter, map, switchMap, take, tap} from "rxjs/operators";
+import {ProcessedPhysicalItem} from "./report.service";
 
 export interface RunJobOutput {
     barcodes: string[]
@@ -43,10 +44,10 @@ export class AlmaJobService implements OnDestroy {
     public fileName: string;
     public barcodes: string[] = null;
     public fileLastModifiedDate: Date;
+    public scanDate: string = null;
 
     private setId: string = null;
     private setName: string = null;
-    private scanDate: string = null;
     private dataExtractUrl: string = null;
 
     // To aid with external logic.
@@ -54,11 +55,11 @@ export class AlmaJobService implements OnDestroy {
     public userMessages$: Subject<string> = new Subject();
 
     // Postprocessing internal variables
-    private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults> = new ReplaySubject()
-    private scanInComplete$: ReplaySubject<ScanInResults> = new ReplaySubject()
-    private postprocessCompleteObservable$: Observable<PostprocessResults> = new Observable()
+    private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults | null> = new ReplaySubject()
+    private scanInComplete$: ReplaySubject<ScanInResults | null> = new ReplaySubject()
+    private postprocessCompleteObservable$: Observable<PostprocessResults | null> = new Observable()
 
-    public postprocessComplete$: ReplaySubject<PostprocessResults> = new ReplaySubject()
+    public postprocessComplete$: ReplaySubject<PostprocessResults | null> = new ReplaySubject()
 
     constructor(
         private restService: CloudAppRestService,
@@ -81,12 +82,12 @@ export class AlmaJobService implements OnDestroy {
         })
 
         this.postprocessCompleteObservable$ = combineLatest([this.markAsInventoriedComplete$, this.scanInComplete$]).pipe(map(results => {
-            return {
+            return results[0] && results[1] ? {
                 markAsInventoriedWasRun: results[0].wasRun,
                 scanInWasRun: results[1].wasRun,
                 itemsScannedIn: results[1].successful,
                 itemsFailedScanIn: results[1].failed
-            }
+            } : null
         }))
         this.postprocessCompleteObservable$.subscribe(value => {
             this.postprocessComplete$.next(value)
@@ -99,6 +100,11 @@ export class AlmaJobService implements OnDestroy {
 
     public getJobResults() {
         return this.loadComplete$.pipe(filter(runJobOutput => runJobOutput !== null))
+    }
+
+    public resetPostProcess() {
+        this.scanInComplete$.next(null)
+        this.markAsInventoriedComplete$.next(null)
     }
 
     public reset() {
@@ -168,7 +174,7 @@ export class AlmaJobService implements OnDestroy {
         }
     }
 
-    public postprocess(inventoryField: string | null, scanInItems: boolean) {
+    public postprocess(inventoryField: string | null, scanInItems: boolean, physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string) {
         if (inventoryField) {
             if (!this.setId) {
                 this.createSet().subscribe(result => {
@@ -190,18 +196,52 @@ export class AlmaJobService implements OnDestroy {
         })
 
         if (scanInItems) {
-            setTimeout(() => {
-                this.scanInComplete$.next({
-                    wasRun: false,
-                    successful: 0,
-                    failed: 0
-                })
-            }, 500)
+            this.scanInItems(physicalItems, library, circDesk, new Date(this.scanDate)).subscribe(result => {
+                this.scanInComplete$.next(result)
+            })
         } else this.scanInComplete$.next({
             wasRun: false,
             successful: 0,
             failed: 0
         })
+    }
+
+    private scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string, scanDate: Date): Observable<ScanInResults> {
+        const requests: Observable<boolean>[] = []
+        for (let item of physicalItems) {
+            if (item.needsToBeScannedIn) {
+                requests.push(this.restService.call({
+                    url: `/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}?op=scan&external_id=false&library=${library}&circ_desk=${circDesk}&done=true&auto_print_slip=false&place_on_hold_shelf=false&confirm=false&register_in_house_use=false`,
+                    method: HttpMethod.POST
+                }).pipe(catchError(err => {
+                    console.log(err)
+                    return of(false)
+                }), map(value => {
+                    if (value) {
+                        this.userMessages$.next(`Scanned in item ${item.barcode} successfully`)
+                        item.wasScannedIn = true
+                    } else {
+                        this.userMessages$.next(`FAILED scanning in item ${item.barcode}`)
+                        this.alert.error(`Failed scanning in item ${item.barcode}`)
+                    }
+
+                    return !!value;
+                })))
+            }
+        }
+
+        return forkJoin(requests).pipe(map(results => {
+            let successful = 0
+            let failed = 0
+            for (let wasSuccessful of results) {
+                wasSuccessful ? successful += 1 : failed += 1
+            }
+            return {
+                successful,
+                failed,
+                wasRun: true
+            }
+        }))
     }
 
     private markAsInventoried(inventoryField: string): Observable<void> {

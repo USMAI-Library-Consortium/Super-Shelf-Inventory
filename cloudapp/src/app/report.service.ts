@@ -2,8 +2,7 @@ import {Injectable} from "@angular/core";
 import {ParseReportService, PhysicalItem} from "./parse-report.service";
 import {ReplaySubject, Subscription} from "rxjs";
 import * as XLSX from 'xlsx';
-import {filter, take} from "rxjs/operators";
-import {Validators} from "@angular/forms";
+import {filter, map, take} from "rxjs/operators";
 
 export interface ProcessedPhysicalItem extends PhysicalItem {
     hasProblem: boolean,
@@ -18,10 +17,14 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
     hasLocationProblem: string | null,
     hasNotInPlaceProblem: string | null,
     hasPolicyProblem: string | null,
+    needsToBeScannedIn: boolean,
+    wasScannedIn: boolean,
 }
 
-interface ReportData {
+export interface ReportData {
     outputFilename: string,
+    library: string,
+    circDesk: string,
     reportOnlyProblems: boolean,
     orderProblemLimit: string,
     orderProblemCount: number,
@@ -31,6 +34,7 @@ interface ReportData {
     policyProblemCount: number,
     typeProblemCount: number,
     locationProblemCount: number,
+    notInPlaceProblemCount: number,
     firstCallNum: string,
     lastCallNum: string,
     markAsInventoriedField: string | null,
@@ -48,7 +52,7 @@ export class ReportService {
     constructor(private prs: ParseReportService) {
     }
 
-    getlatestReport() {
+    getLatestReport() {
         return this.reportProcessed$.pipe(filter(value => {return value !== null}), take(1))
     }
 
@@ -68,10 +72,13 @@ export class ReportService {
         sortBy: string,
         markAsInventoriedField: string | null,
         scanInItems: boolean,
-
+        circDeskCode: string | null,
+        scanDate: Date
     ) {
         this.reportProcessed$.next(null)
-        this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().subscribe(physicalItems => {
+        this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().pipe(map(data => {
+            return JSON.parse(JSON.stringify(data))
+        })).subscribe(physicalItems => {
             let orderProblemCount = 0
             let tempProblemCount = 0
             let locationProblemCount = 0
@@ -82,7 +89,6 @@ export class ReportService {
             let notInPlaceProblemCount = 0
             const unsorted: ProcessedPhysicalItem[] = []
 
-            let rowNum = 1
             physicalItems.map(physicalItem => {
                 const processedPhysicalItem: ProcessedPhysicalItem = {
                     ...physicalItem,
@@ -98,9 +104,11 @@ export class ReportService {
                     hasTypeProblem: null,
                     hasPolicyProblem: null,
                     hasNotInPlaceProblem: null,
+                    needsToBeScannedIn: false,
+                    wasScannedIn: false,
                 }
                 return processedPhysicalItem
-            }).forEach(item => {
+            }).forEach((item, i) => {
                 if (item.existsInAlma) {
                     if (!item.callNumber) item.callNumber = "";
                     // Barcode was found so we can store a normalized call number to use for sorting.
@@ -112,9 +120,10 @@ export class ReportService {
                     if (callNumberType == "Dewey") item.callSort = this.normalizeDewey(item.callNumber);
                     else item.callSort = this.normalizeLC(item.callNumber)
                 }
-                item.actualLocation = rowNum
+
+                if (item.lastModifiedDate && (item.lastModifiedDate < scanDate && item.status === "Item not in place")) item.needsToBeScannedIn = true
+                item.actualLocation = i + 1
                 unsorted.push(item)
-                rowNum += 1
             })
 
             const firstItem = unsorted[0]
@@ -165,6 +174,7 @@ export class ReportService {
                             item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
                         }
                         item.hasProblem = true;
+                        orderProblemCount += 1
                     }
                 } // Finished calculating order issues
 
@@ -231,6 +241,8 @@ export class ReportService {
             const outputFilename = `Shelflist_${libraryCode}_${locationCodes.join("_")}_${firstCallNum.substring(0, 4)}_${lastCallNum.substring(0, 4)}_${new Date().toISOString().slice(0, 10)}.xlsx`
             this.reportProcessed$.next({
                 outputFilename,
+                library: libraryCode,
+                circDesk: circDeskCode,
                 reportOnlyProblems,
                 orderProblemLimit,
                 orderProblemCount,
@@ -240,6 +252,7 @@ export class ReportService {
                 locationProblemCount,
                 policyProblemCount,
                 typeProblemCount,
+                notInPlaceProblemCount,
                 firstCallNum,
                 lastCallNum,
                 markAsInventoriedField,
@@ -282,11 +295,14 @@ export class ReportService {
                     "Policy Problem": item.hasPolicyProblem,
                     "Has Active Request": item.hasRequestProblem,
                     "Item Material Type Problem": item.hasTypeProblem,
+                    "Needs to be Scanned In": item.needsToBeScannedIn,
+                    "Scanned In": item.needsToBeScannedIn ? item.wasScannedIn : ""
                 }
             }
 
             return reportCols
         })
+
         const worksheet = XLSX.utils.json_to_sheet(formattedReport)
 
         // Set column widths
@@ -348,7 +364,7 @@ export class ReportService {
             const regex = new RegExp(`${mark}(\\d+)`, "g"); // Create the regex pattern
             lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Replace matches
         }
-        // Remove any inital white space
+        // Remove any initial white space
         lcCallNumber = lcCallNumber.trimStart()
 
         const lcRegex = /^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/;

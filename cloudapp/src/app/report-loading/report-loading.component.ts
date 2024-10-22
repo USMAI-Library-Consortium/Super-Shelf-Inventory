@@ -2,7 +2,7 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ReportService} from "../report.service";
 import {AlmaJobService} from "../alma-job.service";
 import {Subscription} from "rxjs";
-import {map} from "rxjs/operators";
+import {filter, map} from "rxjs/operators";
 import {Router} from "@angular/router";
 
 @Component({
@@ -24,11 +24,14 @@ export class ReportLoadingComponent implements OnInit, OnDestroy {
         this.ajs.userMessages$.subscribe(message => {
             this.userMessages.push(message)
         })
-        this.postprocessCompleteSubscription = this.ajs.postprocessComplete$.subscribe(value => {
+        this.postprocessCompleteSubscription = this.ajs.postprocessComplete$.pipe(filter(results => {
+            return !!results
+        })).subscribe(value => {
             this.router.navigate(["results"])
         })
-        this.getReportSubscription = this.reportService.getlatestReport().pipe(map(report => {
-            this.ajs.postprocess(report.markAsInventoriedField, report.scanInItems)
+        this.getReportSubscription = this.reportService.getLatestReport().pipe(map(report => {
+            console.log("Running postprocess")
+            this.ajs.postprocess(report.markAsInventoriedField, report.scanInItems, report.items, report.library, report.circDesk)
         })).subscribe()
     }
 
