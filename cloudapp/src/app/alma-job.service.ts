@@ -123,7 +123,7 @@ export class AlmaJobService implements OnDestroy {
             this.deleteSet().subscribe(result => {
                 console.log("Set Deleted")
             }, error => {
-                this.alert.error("Failed to delete set.")
+                this.alert.error("Failed to delete set. Set is likely in use by a job.")
             })
         }
     }
@@ -171,9 +171,14 @@ export class AlmaJobService implements OnDestroy {
             this.loadComplete$.next(runInfo);
         } else {
             console.log("Starting new run.")
-            this.createSet().subscribe(_ => {
+            this.createSet().subscribe(successful => {
                 this.userMessages$.next("Running Job...")
-                this.runJobOnSet()
+
+                if (successful) {
+                    this.runJobOnSet()
+                } else {
+                    this.userMessages$.next('Set Creation Failed. Please close and reopen app.')
+                }
             });
         }
     }
@@ -181,12 +186,16 @@ export class AlmaJobService implements OnDestroy {
     public postprocess(inventoryField: string | null, scanInItems: boolean, physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string) {
         if (inventoryField) {
             if (!this.setId) {
-                this.createSet().subscribe(result => {
-                    this.markAsInventoried(inventoryField).subscribe(result => {
-                        this.markAsInventoriedComplete$.next({
-                            wasRun: true,
+                this.createSet().subscribe(successful => {
+                    if (successful) {
+                        this.markAsInventoried(inventoryField).subscribe(result => {
+                            this.markAsInventoriedComplete$.next({
+                                wasRun: true,
+                            })
                         })
-                    })
+                    } else {
+                        this.userMessages$.next("Set creation failure. Please try again.")
+                    }
                 })
             } else {
                 this.markAsInventoried(inventoryField).subscribe(result => {
@@ -1054,35 +1063,67 @@ export class AlmaJobService implements OnDestroy {
             },
         };
 
-        const newSetMembers = {
-            members: {
-                total_record_count: this.barcodes.length,
-                member: this.barcodes.map((barcode) => {
-                    return {
-                        link: "",
-                        id: barcode,
-                    };
-                }),
-            },
-        };
+        const maxChunkSize = 200;
+        const barcodeChunks: string[][] = [];
+
+        this.barcodes.forEach((barcode, i) => {
+            if (i % maxChunkSize === 0) {
+                barcodeChunks.push([]);
+            }
+            barcodeChunks[barcodeChunks.length - 1].push(barcode);
+        });
+
+        const addSetMemberBodies = barcodeChunks.map(barcodeChunk => {
+            return {
+                members: {
+                    total_record_count: barcodeChunk.length,
+                    member: barcodeChunk.map((barcode) => {
+                        return {
+                            link: "",
+                            id: barcode,
+                        };
+                    }),
+                },
+            };
+        })
 
         return this.restService
             .call({
                 url: "/conf/sets",
                 method: HttpMethod.POST,
                 requestBody: newSet,
-            }).pipe(switchMap(result => {
-                return this.restService.call({
-                    url: `/conf/sets/${result["id"]}?op=add_members&fail_on_invalid_id=false&id_type=BARCODE`,
-                    method: HttpMethod.POST,
-                    requestBody: newSetMembers,
-                }).pipe(map(result => {
-                    this.setId = result["id"];
-                    this.setName = setName;
-                    this.userMessages$.next(`Added ${result["number_of_members"]["value"]} members to the set`);
-                    console.log(
-                        `Added ${result["number_of_members"]["value"]} members to the set`
-                    );
+            }).pipe(tap(result => {
+                this.setId = result["id"];
+                this.setName = setName;
+            }), switchMap(result => {
+                const addMemberToSetJobs = addSetMemberBodies.map(body => {
+                    return this.restService.call({
+                        url: `/conf/sets/${result["id"]}?op=add_members&fail_on_invalid_id=false&id_type=BARCODE`,
+                        method: HttpMethod.POST,
+                        requestBody: body,
+                    }).pipe(catchError(result => {
+                        console.log(result.error)
+                        return of(false)
+                    }), map(result => {
+                        if (result) {
+                            this.userMessages$.next(`Added ${body.members.total_record_count} members to the set`);
+                            console.log(
+                                `Added ${body.members.total_record_count} members to the set`
+                            );
+                            return true
+                        } else {
+                            this.userMessages$.next("Failure adding members to set")
+                            return false
+                        }
+                    }))
+                })
+
+                return forkJoin(addMemberToSetJobs).pipe(map(results => {
+                    let successful = true
+                    results.forEach(result => {
+                        if (!result) successful = false
+                    })
+                    return successful
                 }))
             }))
     }
