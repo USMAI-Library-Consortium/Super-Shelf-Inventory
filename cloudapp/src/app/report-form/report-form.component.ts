@@ -244,7 +244,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const sortBy = this.inventoryForm.get("sortBy").value
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
-        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems, circDesk, new Date(this.ajs.scanDate))
+        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems, circDesk, this.ajs.scanDate)
         this.router.navigate(["/", 'report-loading'])
     }
 

@@ -11,7 +11,7 @@ export interface RunJobOutput {
     setId: string;
     setName: string;
     dataExtractUrl: string;
-    scanDate: string;
+    scanDate: number;
     date: string;
 }
 
@@ -44,7 +44,7 @@ export class AlmaJobService implements OnDestroy {
     public fileName: string;
     public barcodes: string[] = null;
     public fileLastModifiedDate: Date;
-    public scanDate: string = null;
+    public scanDate: number = null;
 
     private setId: string = null;
     private setName: string = null;
@@ -81,7 +81,11 @@ export class AlmaJobService implements OnDestroy {
             }
         })
 
-        this.postprocessCompleteObservable$ = combineLatest([this.markAsInventoriedComplete$, this.scanInComplete$]).pipe(map(results => {
+        this.postprocessCompleteObservable$ = combineLatest([this.markAsInventoriedComplete$.pipe(filter(result => {
+            return !!result
+        })), this.scanInComplete$.pipe(filter(result => {
+            return !!result
+        }))]).pipe(map(results => {
             return results[0] && results[1] ? {
                 markAsInventoriedWasRun: results[0].wasRun,
                 scanInWasRun: results[1].wasRun,
@@ -152,7 +156,7 @@ export class AlmaJobService implements OnDestroy {
 
     public loadData(input: any): void {
         this.loadComplete$.next(null);
-        this.scanDate = input.scanDate
+        this.scanDate = new Date(input.scanDate).valueOf()
         if (input.hasOwnProperty("date")) {
             console.log("Using Previous Run.")
             // This run has been completed previously
@@ -196,7 +200,8 @@ export class AlmaJobService implements OnDestroy {
         })
 
         if (scanInItems) {
-            this.scanInItems(physicalItems, library, circDesk, new Date(this.scanDate)).subscribe(result => {
+            this.scanInItems(physicalItems, library, circDesk).subscribe(result => {
+                console.log("Scan In Items Observable Complete.")
                 this.scanInComplete$.next(result)
             })
         } else this.scanInComplete$.next({
@@ -206,12 +211,13 @@ export class AlmaJobService implements OnDestroy {
         })
     }
 
-    private scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string, scanDate: Date): Observable<ScanInResults> {
+    private scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string): Observable<ScanInResults> {
+        console.log("Running scanInItems function...")
         const requests: Observable<boolean>[] = []
         for (let item of physicalItems) {
             if (item.needsToBeScannedIn) {
                 requests.push(this.restService.call({
-                    url: `/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}?op=scan&external_id=false&library=${library}&circ_desk=${circDesk}&done=true&auto_print_slip=false&place_on_hold_shelf=false&confirm=false&register_in_house_use=false`,
+                    url: `/almaws/v1/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}?op=scan&external_id=false&library=${library}&circ_desk=${circDesk}&done=true&auto_print_slip=false&place_on_hold_shelf=false&confirm=false&register_in_house_use=false`,
                     method: HttpMethod.POST
                 }).pipe(catchError(err => {
                     console.log(err)
@@ -230,7 +236,17 @@ export class AlmaJobService implements OnDestroy {
             }
         }
 
-        return forkJoin(requests).pipe(map(results => {
+        console.log(`Found ${requests.length} items.`)
+
+        if (requests.length === 0) {
+            return of({
+                successful: 0,
+                failed: 0,
+                wasRun: true
+            })
+        }
+
+        if (requests) return forkJoin(requests).pipe(map(results => {
             let successful = 0
             let failed = 0
             for (let wasSuccessful of results) {

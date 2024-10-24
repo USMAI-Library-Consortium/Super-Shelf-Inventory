@@ -20,7 +20,7 @@ export interface PhysicalItem {
     policyType: string | null,
     status: string | null,
     processType: string | null,
-    lastModifiedDate: Date | null,
+    lastModifiedDate: number | null,
     inTempLocation: boolean | null,
     requested: boolean | null
 }
@@ -65,7 +65,7 @@ export class ParseReportService {
                             policyType: string,
                             status: string,
                             processType: string,
-                            lastModifiedDate: Date,
+                            lastModifiedDate: number,
                             inTempLocation: boolean,
                             requested: boolean
                         }
@@ -84,7 +84,7 @@ export class ParseReportService {
                             policyType: row[" Policy"],
                             status: row["Status"],
                             processType: row["Process type"],
-                            lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]) : null,
+                            lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).valueOf() : new Date(row["Creation date"]).valueOf(),
                             inTempLocation: row["Temp library"] && row["Temp location"],
                             requested: row["Process type"] === "REQUESTED"
                         }
@@ -99,9 +99,9 @@ export class ParseReportService {
                                 barcode,
                                 existsInAlma: true,
                                 title: data.title,
-                                mmsId: data.mmsId?.replace("'", ""),
-                                holdingId: data.holdingId?.replace("'", ""),
-                                pid: data.pid?.replace("'", ""),
+                                mmsId: data.mmsId?.replace(/'/g, ""),
+                                holdingId: data.holdingId?.replace(/'/g, ""),
+                                pid: data.pid?.replace(/'/g, ""),
                                 callNumber: data.callNumber,
                                 library: data.library,
                                 location: data.location,

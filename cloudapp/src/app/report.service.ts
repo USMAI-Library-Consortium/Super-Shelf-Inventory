@@ -73,7 +73,7 @@ export class ReportService {
         markAsInventoriedField: string | null,
         scanInItems: boolean,
         circDeskCode: string | null,
-        scanDate: Date
+        scanDate: number
     ) {
         this.reportProcessed$.next(null)
         this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().pipe(map(data => {
@@ -121,7 +121,10 @@ export class ReportService {
                     else item.callSort = this.normalizeLC(item.callNumber)
                 }
 
-                if (item.lastModifiedDate && (item.lastModifiedDate < scanDate && item.status === "Item not in place")) item.needsToBeScannedIn = true
+                if (item.lastModifiedDate < scanDate && item.status === "Item not in place") {
+                    item.needsToBeScannedIn = true
+                    console.log(`Item ${item.barcode} needs to be scanned in `)
+                }
                 item.actualLocation = i + 1
                 unsorted.push(item)
             })
