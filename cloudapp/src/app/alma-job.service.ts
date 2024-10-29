@@ -55,11 +55,11 @@ export class AlmaJobService implements OnDestroy {
     public userMessages$: Subject<string> = new Subject();
 
     // Postprocessing internal variables
-    private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults | null> = new ReplaySubject()
+    private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults | null> = new ReplaySubject(1)
     private scanInComplete$: ReplaySubject<ScanInResults | null> = new ReplaySubject()
     private postprocessCompleteObservable$: Observable<PostprocessResults | null> = new Observable()
 
-    public postprocessComplete$: ReplaySubject<PostprocessResults | null> = new ReplaySubject()
+    public postprocessComplete$: ReplaySubject<PostprocessResults | null> = new ReplaySubject(1)
 
     constructor(
         private restService: CloudAppRestService,

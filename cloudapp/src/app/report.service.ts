@@ -53,7 +53,9 @@ export class ReportService {
     }
 
     getLatestReport() {
-        return this.reportProcessed$.pipe(filter(value => {return value !== null}), take(1))
+        return this.reportProcessed$.pipe(filter(value => {
+            return value !== null
+        }), take(1))
     }
 
     reset() {
@@ -334,13 +336,13 @@ export class ReportService {
         XLSX.writeFile(workbook, reportData.outputFilename);
     }
 
-    private sortLC = (right: PhysicalItem, left: PhysicalItem) => {
-        const rightCN = this.normalizeLC(right.callNumber)
-        const leftCN = this.normalizeLC(left.callNumber)
-        return rightCN.localeCompare(leftCN)
+    public sortLC = (a: PhysicalItem, b: PhysicalItem) => {
+        const aCN = this.normalizeLC(a.callNumber)
+        const bCN = this.normalizeLC(b.callNumber)
+        return aCN.localeCompare(bCN)
     }
 
-    private normalizeLC(originalLCNumber: string) {
+    public normalizeLC(originalLCNumber: string) {
         /*
           User defined setting: set problems to top to sort unparsable
           call numbers to the top of the list; false to sort them to the
@@ -360,51 +362,56 @@ export class ReportService {
             "v.",
             "V.",
             "VOL.",
-        ];
+            "OP."
+        ]; // A number that follows one of these should be treated as an integer not a decimal.
 
         for (let mark of integerMarkers) {
-            mark = mark.replace(".", "\\."); // Escape the dot for regex
-            const regex = new RegExp(`${mark}(\\d+)`, "g"); // Create the regex pattern
-            lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Replace matches
+            mark = mark.toUpperCase()
+            mark = mark.replace(".", "\\."); // Escape the dot so it can be used as a regex pattern
+            const regex = new RegExp(`${mark}(\\d+)`, "g");
+            lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Add a semicolon to distinguish it as an integer.
         }
+
         // Remove any initial white space
         lcCallNumber = lcCallNumber.trimStart()
 
-        const lcRegex = /^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/;
+        const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.\d*)\s*\.*\s*(?<cutter1Letter>[A-Z]*)(?<cutter1Number>\d*)\s*(?<cutter2Letter>[A-Z]*)(?<cutter2Number>\d*)\s*(?<theTrimmings>.*)$/;
         const match = lcCallNumber.match(lcRegex);
         if (!match) return unparsable // return extreme answer if not a call number
 
         // Process the extracted variables as needed
         // Return or do something with the parsed data
-        const initialLetters = match[1];
-        let classNumber = match[2];
-        let decimalNumber = match[3];
-        const cutter1Letter = match[4];
-        let cutter1Number = match[5];
-        let cutter2Letter = match[6];
-        let cutter2Number = match[7];
-        let theTrimmings = match[8];
+        let {
+            initialLetters,
+            classNumber,
+            decimalNumber,
+            cutter1Letter,
+            cutter1Number,
+            cutter2Letter,
+            cutter2Number,
+            theTrimmings
+        } = match.groups;
+        // Set all values to empty string if they are undefined
+        initialLetters = initialLetters || "";
+        classNumber = classNumber || "";
+        decimalNumber = decimalNumber || "";
+        cutter1Letter = cutter1Letter || "";
+        cutter1Number = cutter1Number || "";
+        cutter2Letter = cutter2Letter || "";
+        cutter2Number = cutter2Number || "";
+        theTrimmings = theTrimmings || "";
+        // 20 before 170
+        // decimal number - need to fix. these are not by original design
+        // Cutter 1 letter need to fix, 170.5.f should be after 170.f
+        // cutter 1 number .F175 before .F2 -> .175 vs .2
+
+        console.log(theTrimmings)
 
         if (cutter2Letter && !cutter2Number) {
             theTrimmings = cutter2Letter + theTrimmings;
             cutter2Letter = '';
         }
 
-        /* TESTING NEW SECTION TO HANDLE VOLUME & PART NUMBERS */
-        integerMarkers.forEach(marker => {
-            const exp = `/(.*)(${marker})(\d+)(.*)/`
-            const markerMatch = marker.match(exp)
-
-            if (markerMatch) {
-                const trimStart = markerMatch[1];
-                const intMark = markerMatch[2];
-                const trimRest = markerMatch[4];
-
-                let intNo = markerMatch[3];
-                intNo = intNo.padStart(5, ' ');
-                theTrimmings = trimStart + intMark + intNo + trimRest;
-            }
-        })
 
         if (classNumber) classNumber = classNumber.padStart(5, " ");
         if (decimalNumber) decimalNumber = decimalNumber.padEnd(12, ' ');
@@ -413,9 +420,25 @@ export class ReportService {
         if (cutter2Number) cutter2Number = ` ${cutter2Number}`;
 
         if (theTrimmings) {
-            theTrimmings = theTrimmings.replace(/(\.)(\d)/g, '$1 $2');
-            theTrimmings = theTrimmings.replace(/(\d)\s*-\s*(\d)/g, '$1-$2');
-            theTrimmings = `   ${theTrimmings}`;
+            /* TESTING NEW SECTION TO HANDLE VOLUME & PART NUMBERS */
+            integerMarkers.forEach(marker => {
+                const exp2 = new RegExp(`(?<trimmingStart>.*)?(?<integerMarker>${marker})(\\.)?\\s*(?<integer>\\d+);(?<theRest>.*)?`, "i")
+                const markerMatch = theTrimmings.match(exp2); // Apply regex on 'theTrimmings'
+
+                if (markerMatch?.groups) { // Safely access groups
+                    console.log("There's a match")
+                    const { trimmingStart, integerMarker, integer, theRest } = markerMatch.groups;
+                    const paddedInteger = integer.padStart(5, '0');
+                    theTrimmings = `${trimmingStart ? trimmingStart : ""}${integerMarker}${paddedInteger}${theRest ? theRest : ""}`;
+                }
+            });
+
+            theTrimmings = theTrimmings.replace(/(\.)(\d)/g, '$1 $2'); //Matches a period (.) followed by a digit, adds a space between
+            theTrimmings = theTrimmings.replace(/(\d)\s*-\s*(\d)/g, '$1-$2'); // Matches two digits separated by a dash (-), with whitespace on either side, ensures no whitespace around the dash
+            theTrimmings = `   ${theTrimmings}`; // Add 3 leading spaces
+
+            theTrimmings = theTrimmings.replace("\\", "")
+            console.log(`The trimmings after processing: ${theTrimmings}`)
         }
 
         return initialLetters + classNumber + decimalNumber + cutter1Letter + cutter1Number + cutter2Letter

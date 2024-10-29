@@ -18,9 +18,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     constructor(public reportService: ReportService, private prs: ParseReportService, public ajs: AlmaJobService, private router: Router) {
     }
 
-    ngOnInit(): void {
-
-    }
+    ngOnInit(): void {}
 
     ngOnDestroy() {
         if (this.reportDataSubscription) this.reportDataSubscription.unsubscribe();
@@ -46,6 +44,4 @@ export class ResultsComponent implements OnInit, OnDestroy {
             }
         )
     }
-
-    protected readonly filter = filter;
 }
