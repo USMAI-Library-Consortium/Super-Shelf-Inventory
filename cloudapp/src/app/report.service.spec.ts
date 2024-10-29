@@ -49,7 +49,7 @@ describe('ReportService', () => {
 
   it('Should parse american liturature call numbers correctly', () => {
     const result = service.normalizeLC("PS3572.A39D66 2004")
-    expect(result).toEqual("PS 3572.           A 39   D 66   2004", result)
+    expect(result).toEqual("PS   03572.00000000000 A3900000 D6600000 2004", result)
   })
 
   it('should sort call numbers correctly literature', () => {

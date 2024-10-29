@@ -121,6 +121,7 @@ export class ReportService {
 
                     if (callNumberType == "Dewey") item.callSort = this.normalizeDewey(item.callNumber);
                     else item.callSort = this.normalizeLC(item.callNumber)
+                    console.log(item.callSort)
                 }
 
                 if (item.lastModifiedDate < scanDate && item.status === "Item not in place") {
@@ -375,7 +376,7 @@ export class ReportService {
         // Remove any initial white space
         lcCallNumber = lcCallNumber.trimStart()
 
-        const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.\d*)\s*\.*\s*(?<cutter1Letter>[A-Z]*)(?<cutter1Number>\d*)\s*(?<cutter2Letter>[A-Z]*)(?<cutter2Number>\d*)\s*(?<theTrimmings>.*)$/;
+        const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z]*)(?<cutter1Number>\d*))?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+))?\s*(?<theTrimmings>.*)$/;
         const match = lcCallNumber.match(lcRegex);
         if (!match) return unparsable // return extreme answer if not a call number
 
@@ -385,8 +386,10 @@ export class ReportService {
             initialLetters,
             classNumber,
             decimalNumber,
+            cutter1,
             cutter1Letter,
             cutter1Number,
+            cutter2,
             cutter2Letter,
             cutter2Number,
             theTrimmings
@@ -405,19 +408,12 @@ export class ReportService {
         // Cutter 1 letter need to fix, 170.5.f should be after 170.f
         // cutter 1 number .F175 before .F2 -> .175 vs .2
 
-        console.log(theTrimmings)
-
-        if (cutter2Letter && !cutter2Number) {
-            theTrimmings = cutter2Letter + theTrimmings;
-            cutter2Letter = '';
+        if (!cutter2) {
+            if (cutter2Letter) {
+                theTrimmings = cutter2Letter + theTrimmings;
+                cutter2Letter = '';
+            }
         }
-
-
-        if (classNumber) classNumber = classNumber.padStart(5, " ");
-        if (decimalNumber) decimalNumber = decimalNumber.padEnd(12, ' ');
-        if (cutter1Number) cutter1Number = ` ${cutter1Number}`;
-        if (cutter2Letter) cutter2Letter = `   ${cutter2Letter}`;
-        if (cutter2Number) cutter2Number = ` ${cutter2Number}`;
 
         if (theTrimmings) {
             /* TESTING NEW SECTION TO HANDLE VOLUME & PART NUMBERS */
@@ -426,8 +422,7 @@ export class ReportService {
                 const markerMatch = theTrimmings.match(exp2); // Apply regex on 'theTrimmings'
 
                 if (markerMatch?.groups) { // Safely access groups
-                    console.log("There's a match")
-                    const { trimmingStart, integerMarker, integer, theRest } = markerMatch.groups;
+                    const {trimmingStart, integerMarker, integer, theRest} = markerMatch.groups;
                     const paddedInteger = integer.padStart(5, '0');
                     theTrimmings = `${trimmingStart ? trimmingStart : ""}${integerMarker}${paddedInteger}${theRest ? theRest : ""}`;
                 }
@@ -435,14 +430,12 @@ export class ReportService {
 
             theTrimmings = theTrimmings.replace(/(\.)(\d)/g, '$1 $2'); //Matches a period (.) followed by a digit, adds a space between
             theTrimmings = theTrimmings.replace(/(\d)\s*-\s*(\d)/g, '$1-$2'); // Matches two digits separated by a dash (-), with whitespace on either side, ensures no whitespace around the dash
-            theTrimmings = `   ${theTrimmings}`; // Add 3 leading spaces
+            theTrimmings = theTrimmings.trimStart()
 
             theTrimmings = theTrimmings.replace("\\", "")
-            console.log(`The trimmings after processing: ${theTrimmings}`)
         }
 
-        return initialLetters + classNumber + decimalNumber + cutter1Letter + cutter1Number + cutter2Letter
-            + cutter2Number + theTrimmings;
+        return `${initialLetters.padEnd(4, " ")} ${classNumber.padStart(5, "0")}${decimalNumber.padEnd(12, "0")} ${cutter1 ? cutter1Letter + cutter1Number.padEnd(7, "0") : "        "} ${cutter2 ? cutter2Letter + cutter2Number.padEnd(7, "0") : "        "} ${theTrimmings}`
     }
 
     private sortDewey(right: PhysicalItem, left: PhysicalItem) {

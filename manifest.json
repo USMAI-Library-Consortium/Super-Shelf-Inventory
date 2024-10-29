@@ -2,8 +2,8 @@
    "id": "super-shelf-2000",
    "title": "Super Shelf 2000 (Pre-release - Alpha v0.0.1)",
    "subtitle": "Shelf Inventory tool w/ post-processing capabilities.",
-   "description": "ALPHA v0.0.1 - FOR TESTING AND VERIFICATION PURPOSES ONLY.  Currently supports LC Call Numbers only.",
    "author": "Erik Jones (USMAI)",
+   "description": "ALPHA v0.0.1 - FOR TESTING AND VERIFICATION PURPOSES ONLY.  Currently supports LC Call Numbers only.",
    "contentSecurity": {
       "sandbox": {
          "downloads": true
