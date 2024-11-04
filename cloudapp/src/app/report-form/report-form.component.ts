@@ -83,7 +83,7 @@ export class ReportForm implements OnInit, OnDestroy {
             expectedPolicyTypes: [[], Validators.required],
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
-            sortBy: ["correctOrder", Validators.required],
+            sortBy: ["actualOrder", Validators.required],
             markAsInventoried: [false, Validators.required],
             scanInItems: [false, Validators.required],
             circDesk: [null],
