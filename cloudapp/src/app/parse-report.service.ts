@@ -114,6 +114,7 @@ export class ParseReportService {
                                 requested: data.requested,
                             })
                         } else {
+                            console.log(barcode + " does not exist in Alma.")
                             // Item does NOT exist in Alma
                             physicalItems.push({
                                 barcode,

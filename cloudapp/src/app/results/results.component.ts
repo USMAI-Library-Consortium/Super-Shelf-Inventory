@@ -40,7 +40,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     downloadReport() {
         this.reportDataSubscription = this.reportService.getLatestReport().subscribe(
             result => {
-                this.reportService.generateExcel(result)
+                this.reportService.generateAndDownloadExcel(result)
             }
         )
     }

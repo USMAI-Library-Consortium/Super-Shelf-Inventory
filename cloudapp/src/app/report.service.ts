@@ -1,13 +1,15 @@
 import {Injectable} from "@angular/core";
 import {ParseReportService, PhysicalItem} from "./parse-report.service";
-import {ReplaySubject, Subscription} from "rxjs";
+import {Observable, ReplaySubject, Subscription} from "rxjs";
 import * as XLSX from 'xlsx';
 import {filter, map, take} from "rxjs/operators";
 
 export interface ProcessedPhysicalItem extends PhysicalItem {
     hasProblem: boolean,
-    callSort: string | null;
+    callSort: string | null,
+    sortable: boolean,
     actualLocation: number | null,
+    actualLocationInUnsortablesRemoved: number | null,
     correctLocation: number | null,
     hasOrderProblem: string | null,
     hasTemporaryLocationProblem: string | null,
@@ -23,23 +25,25 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
 
 export interface ReportData {
     outputFilename: string,
+    sortBy: string,
     library: string,
     circDesk: string,
     reportOnlyProblems: boolean,
     orderProblemLimit: string,
-    orderProblemCount: number,
-    temporaryLocationProblemCount: number,
-    libraryProblemCount: number,
-    requestProblemCount: number,
-    policyProblemCount: number,
-    typeProblemCount: number,
-    locationProblemCount: number,
-    notInPlaceProblemCount: number,
+    orderProblemCount: number | string,
+    temporaryLocationProblemCount: number | string,
+    libraryProblemCount: number | string,
+    requestProblemCount: number | string,
+    policyProblemCount: number | string,
+    typeProblemCount: number | string,
+    locationProblemCount: number | string,
+    notInPlaceProblemCount: number | string,
     firstCallNum: string,
     lastCallNum: string,
     markAsInventoriedField: string | null,
     scanInItems: boolean,
-    items: ProcessedPhysicalItem[]
+    unsortedItems: ProcessedPhysicalItem[],
+    sortedItems: ProcessedPhysicalItem[]
 }
 
 @Injectable({
@@ -76,27 +80,21 @@ export class ReportService {
         scanInItems: boolean,
         circDeskCode: string | null,
         scanDate: number
-    ) {
+    ): Observable<ReportData> {
         this.reportProcessed$.next(null)
         this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().pipe(map(data => {
             return JSON.parse(JSON.stringify(data))
         })).subscribe(physicalItems => {
-            let orderProblemCount = 0
-            let tempProblemCount = 0
-            let locationProblemCount = 0
-            let libraryProblemCount = 0
-            let requestProblemCount = 0
-            let policyProblemCount = 0
-            let typeProblemCount = 0
-            let notInPlaceProblemCount = 0
             const unsorted: ProcessedPhysicalItem[] = []
 
-            physicalItems.map(physicalItem => {
+            physicalItems.map((physicalItem: PhysicalItem) => {
                 const processedPhysicalItem: ProcessedPhysicalItem = {
                     ...physicalItem,
                     hasProblem: false,
                     callSort: null,
+                    sortable: true,
                     actualLocation: null,
+                    actualLocationInUnsortablesRemoved: null,
                     correctLocation: null,
                     hasLibraryProblem: null,
                     hasLocationProblem: null,
@@ -110,149 +108,82 @@ export class ReportService {
                     wasScannedIn: false,
                 }
                 return processedPhysicalItem
-            }).forEach((item, i) => {
-                if (item.existsInAlma) {
-                    if (!item.callNumber) item.callNumber = "";
-                    // Barcode was found so we can store a normalized call number to use for sorting.
-
-                    if (item.itemMaterialType && item.itemMaterialType == "DVD") {
-                        item.callNumber = item.callNumber.replace(/^DVD\s*/, "")
-                    }
-
-                    if (callNumberType == "Dewey") item.callSort = this.normalizeDewey(item.callNumber);
-                    else item.callSort = this.normalizeLC(item.callNumber)
-                    console.log(item.callSort)
+            }).forEach((item: ProcessedPhysicalItem, i: number) => {
+                if (!item.callNumber) item.callNumber = "";
+                // Barcode was found so we can store a normalized call number to use for sorting.
+                if (item.itemMaterialType && item.itemMaterialType == "DVD") {
+                    item.callNumber = item.callNumber.replace(/^DVD\s*/, "")
                 }
+
+                if (callNumberType == "Dewey") item.callSort = this.normalizeDewey(item.callNumber);
+                else item.callSort = this.normalizeLC(item.callNumber)
 
                 if (item.lastModifiedDate < scanDate && item.status === "Item not in place") {
                     item.needsToBeScannedIn = true
                     console.log(`Item ${item.barcode} needs to be scanned in `)
                 }
+
                 item.actualLocation = i + 1
+
+                // Determine whether the item is sortable
+                if (item.callSort === "~" || item.callSort === " " || item.callSort === "") {
+                    item.sortable = false
+                    item.hasOrderProblem = item.existsInAlma ? "**UNPARSABLE CALL NUMBER**" : "**NOT IN ALMA**"
+                }
                 unsorted.push(item)
             })
 
-            const firstItem = unsorted[0]
-            const lastItem = unsorted[unsorted.length - 1]
-            const firstCallNum = firstItem.callNumber.replace(".", "").replace(" ", "")
-            const lastCallNum = lastItem.callNumber.replace(".", "").replace(" ", "")
+            const unsortedWithUnsortablesRemoved = unsorted.filter(item => {
+                return item.sortable
+            })
+            unsortedWithUnsortablesRemoved.forEach((item, i) => {
+                item.actualLocationInUnsortablesRemoved = i + 1
+            })
 
             // Create a sorted array.
-            const sorted = [...unsorted].sort(callNumberType === "Dewey" ? this.sortDewey : this.sortLC)
+            const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "Dewey" ? this.sortDewey : this.sortLC)
 
             sorted.forEach((item, index) => {
-
                 // Flag order issues unless "Only problems other than CN Order" is requested
                 if (orderProblemLimit !== "onlyOther") {
-                    const actualLocationIndex = item.actualLocation - 1
-                    const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
-
-                    const correctPreviousItemCallNum = index > 0 ? sorted[index - 1].callNumber : "LOCATION START"
-                    const correctNextItemCallNum = index < sorted.length - 1 ? sorted[index + 1].callNumber : "LOCATION END"
-
-                    // Get actual previous call number based on actualLocation
-                    const actualPreviousItemCallNum = actualLocationIndex > 0 ? unsorted[actualLocationIndex - 1].callNumber : "LOCATION START";
-                    // Get actual next call number based on actualLocation
-                    const actualNextItemCallNumber = actualLocationIndex < unsorted.length - 1 ? unsorted[actualLocationIndex + 1].callNumber : "LOCATION END";
-
-                    const previousItemIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum
-                    const nextItemIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum
-
-                    const itemInCorrectRelativePosition = previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
-
-                    if (!itemIsInTheCorrectAbsolutePosition) {
-                        if (itemInCorrectRelativePosition) {
-                            item.hasOrderProblem = "**Out Of Order section continued**"
-                        }
-
-                        const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-                        if (isRogueItem) {
-                            item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
-                        }
-
-                        const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
-                        if (isFirstItemOfBadSection) {
-                            item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
-                        }
-
-                        const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-                        if (isLastItemOfBadSection) {
-                            item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
-                        }
-                        item.hasProblem = true;
-                        orderProblemCount += 1
-                    }
+                    this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved);
                 } // Finished calculating order issues
 
                 // Flag other issues unless "Only CN Order problems" is requested.
                 if (orderProblemLimit !== "onlyOrder") {
-                    // Does not calculate wrong call number issues.
-
-                    if (item.status !== "Item in place") {
-                        item.hasProblem = true
-                        item.hasNotInPlaceProblem = `**Not In Place: ${item.processType}**`
-                        notInPlaceProblemCount += 1
-                    }
-
-                    if (item.inTempLocation) {
-                        item.hasProblem = true
-                        item.hasTemporaryLocationProblem = "**IN TEMP LOC**"
-                        tempProblemCount += 1
-                    }
-
-                    if (item.requested) {
-                        item.hasProblem = true
-                        item.hasRequestProblem = "**ITEM HAS REQUEST**"
-                        requestProblemCount += 1
-                    }
-
-                    if (!locationCodes.includes(item.location)) {
-                        item.hasProblem = true
-                        item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
-                        locationProblemCount += 1
-                    }
-
-                    if (item.library !== libraryCode) {
-                        item.hasProblem = true
-                        item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
-                        libraryProblemCount += 1
-                    }
-
-                    if (expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)) {
-                        if (item.policyType != "") {
-                            item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`
-                        } else {
-                            item.hasPolicyProblem = "**BLANK ITEM POLICY**"
-                        }
-                        item.hasProblem = true
-                        policyProblemCount += 1
-                    }
-
-                    if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
-                        if (item.itemMaterialType !== "") {
-                            item.hasTypeProblem = `**WRONG TYPE: ${item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
-                        } else {
-                            item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
-                        }
-                        item.hasProblem = true
-                        typeProblemCount += 1
-                    }
-
-
+                    this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, expectedItemTypes);
                 } // Finished calculating non-order-related issues
 
                 item.correctLocation = index + 1
             })
 
+            const {
+                orderProblemCount,
+                temporaryLocationProblemCount,
+                libraryProblemCount,
+                requestProblemCount,
+                locationProblemCount,
+                policyProblemCount,
+                typeProblemCount,
+                notInPlaceProblemCount
+            } = this.getProblemCounts(orderProblemLimit, unsorted);
+
+            console.log(`Problem Count for Orders: ${orderProblemCount}`)
+
+            const firstItem = unsorted[0]
+            const lastItem = unsorted[unsorted.length - 1]
+            const firstCallNum = firstItem.callNumber.replace(".", "").replace(" ", "")
+            const lastCallNum = lastItem.callNumber.replace(".", "").replace(" ", "")
             const outputFilename = `Shelflist_${libraryCode}_${locationCodes.join("_")}_${firstCallNum.substring(0, 4)}_${lastCallNum.substring(0, 4)}_${new Date().toISOString().slice(0, 10)}.xlsx`
             this.reportProcessed$.next({
                 outputFilename,
+                sortBy,
                 library: libraryCode,
                 circDesk: circDeskCode,
                 reportOnlyProblems,
                 orderProblemLimit,
                 orderProblemCount,
-                temporaryLocationProblemCount: tempProblemCount,
+                temporaryLocationProblemCount,
                 libraryProblemCount,
                 requestProblemCount,
                 locationProblemCount,
@@ -263,25 +194,167 @@ export class ReportService {
                 lastCallNum,
                 markAsInventoriedField,
                 scanInItems,
-                items: sortBy === "actualOrder" ? unsorted : sorted
+                unsortedItems: unsorted,
+                sortedItems: sorted
             })
         })
 
+        return this.getLatestReport()
     }
 
-    generateExcel(reportData: ReportData) {
-        const formattedReport = reportData.items.filter((item) => {
+    protected getProblemCounts(orderProblemLimit: string, items: ProcessedPhysicalItem[]) {
+        // Get order problems
+        const orderProblemCount = (orderProblemLimit !== "onlyOther") ? items.reduce((acc, item) => {
+            return item.hasOrderProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const temporaryLocationProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasTemporaryLocationProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const libraryProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasLibraryProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const requestProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasRequestProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const locationProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasLocationProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const policyProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasPolicyProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const typeProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasTypeProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        const notInPlaceProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
+            return item.hasNotInPlaceProblem ? acc + 1 : acc
+        }, 0) : "n/a"
+        return {
+            orderProblemCount,
+            temporaryLocationProblemCount,
+            libraryProblemCount,
+            requestProblemCount,
+            locationProblemCount,
+            policyProblemCount,
+            typeProblemCount,
+            notInPlaceProblemCount
+        };
+    }
+
+    protected calculateOtherProblems(item: ProcessedPhysicalItem, locationCodes: string[], libraryCode: string, expectedPolicyTypes: string[], expectedItemTypes: string[]) {
+        if (item.status !== "Item in place") {
+            item.hasProblem = true
+            item.hasNotInPlaceProblem = `**Not In Place: ${item.processType}**`
+        }
+
+        if (item.inTempLocation) {
+            item.hasProblem = true
+            item.hasTemporaryLocationProblem = "**IN TEMP LOC**"
+        }
+
+        if (item.requested) {
+            item.hasProblem = true
+            item.hasRequestProblem = "**ITEM HAS REQUEST**"
+        }
+
+        if (!locationCodes.includes(item.location)) {
+            item.hasProblem = true
+            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
+        }
+
+        if (item.library !== libraryCode) {
+            item.hasProblem = true
+            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
+        }
+
+        if (expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)) {
+            if (item.policyType != "") {
+                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`
+            } else {
+                item.hasPolicyProblem = "**BLANK ITEM POLICY**"
+            }
+            item.hasProblem = true
+        }
+
+        if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
+            if (item.itemMaterialType !== "") {
+                item.hasTypeProblem = `**WRONG TYPE: ${item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
+            } else {
+                item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
+            }
+            item.hasProblem = true
+        }
+    }
+
+    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[]) {
+        if (item.existsInAlma) {
+            const actualLocationIndex = item.actualLocationInUnsortablesRemoved - 1
+            const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
+
+            const correctPreviousItemCallNum = index > 0 ? sorted[index - 1].callNumber : "LOCATION START"
+            const correctNextItemCallNum = index < sorted.length - 1 ? sorted[index + 1].callNumber : "LOCATION END"
+
+            // Get actual previous call number based on actualLocation
+            const actualPreviousItemCallNum = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].callNumber : "LOCATION START";
+            // Get actual next call number based on actualLocation
+            const actualNextItemCallNumber = actualLocationIndex < unsortedWithUnsortablesRemoved.length - 1 ? unsortedWithUnsortablesRemoved[actualLocationIndex + 1].callNumber : "LOCATION END";
+
+            const previousItemIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum
+            const nextItemIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum
+
+            const itemInCorrectRelativePosition = previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
+
+            if (!itemIsInTheCorrectAbsolutePosition) {
+                if (itemInCorrectRelativePosition) {
+                    item.hasOrderProblem = "**Out Of Order section continued**"
+                }
+
+                const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
+                if (isRogueItem) {
+                    item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
+                }
+
+                const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
+                if (isFirstItemOfBadSection) {
+                    item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
+                }
+
+                const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
+                if (isLastItemOfBadSection) {
+                    item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
+                }
+                item.hasProblem = true;
+            }
+        } else {
+            item.hasProblem = true
+        }
+    }
+
+    generateAndDownloadExcel(reportData: ReportData) {
+
+        // if sortBy is by actual order, use the unsorted array. Else, use the sorted array but add all unsorted items
+        // to the end
+        let arrayToDisplay: ProcessedPhysicalItem[];
+        if (reportData.sortBy === "correctOrder") {
+            const unparsableItems = reportData.unsortedItems.filter(item => {
+                return !item.sortable
+            })
+            arrayToDisplay = [...reportData.sortedItems, ...unparsableItems]
+        } else {
+            arrayToDisplay = reportData.unsortedItems
+        }
+
+        const formattedReport = arrayToDisplay.filter((item) => {
             if (reportData.reportOnlyProblems) {
                 return item.hasProblem
             } else return true
         }).map(item => {
             let reportCols: object = {
                 "Barcode": item.barcode,
-                "Correct Position": item.correctLocation,
+                "Correct Position": item.correctLocation ? item.correctLocation : "?",
                 "Actual Position": item.actualLocation,
                 "Call Number": item.callNumber,
                 "Normalized Call Number": item.callSort,
-                "Title": item.title,
+                "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
             if (!(reportData.orderProblemLimit === "onlyOther")) {
@@ -311,6 +384,21 @@ export class ReportService {
 
         const worksheet = XLSX.utils.json_to_sheet(formattedReport)
 
+        // Apply alignment settings to prevent overflow
+        for (const cellAddress in worksheet) {
+            if (cellAddress.startsWith('!')) continue; // Skip non-cell properties
+            const cell = worksheet[cellAddress];
+            if (cell) {
+                cell.s = {
+                    alignment: {
+                        wrapText: true,  // Wraps text to prevent overflow
+                        horizontal: 'center',  // Center-aligns text, optional
+                        vertical: 'top'  // Aligns text to the top of the cell, optional
+                    }
+                };
+            }
+        }
+
         // Set column widths
         worksheet['!cols'] = [
             {wch: 15},  // Barcode column width
@@ -318,7 +406,7 @@ export class ReportService {
             {wch: 15},  // Actual Position column width
             {wch: 25},  // Call Number column width
             {wch: 30},  // Normalized Call Number column width
-            {wch: 50},  // Title column width
+            {wch: 58},  // Title column width
             {wch: 30},
             {wch: 30},
             {wch: 30},
@@ -337,9 +425,9 @@ export class ReportService {
         XLSX.writeFile(workbook, reportData.outputFilename);
     }
 
-    public sortLC = (a: PhysicalItem, b: PhysicalItem) => {
-        const aCN = this.normalizeLC(a.callNumber)
-        const bCN = this.normalizeLC(b.callNumber)
+    public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem) => {
+        const aCN: string = a.callSort ? a.callSort : this.normalizeLC(a.callNumber)
+        const bCN: string = b.callSort ? b.callSort : this.normalizeLC(b.callNumber)
         return aCN.localeCompare(bCN)
     }
 
@@ -349,8 +437,9 @@ export class ReportService {
           call numbers to the top of the list; false to sort them to the
           bottom.
         */
-        const problemsToTop = true;
+        const problemsToTop = false;
         const unparsable = problemsToTop ? " " : "~";
+        if (!originalLCNumber) return unparsable
 
         let lcCallNumber = originalLCNumber.toUpperCase();
         const integerMarkers = [

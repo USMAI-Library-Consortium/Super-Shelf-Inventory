@@ -31,7 +31,7 @@ export class ReportLoadingComponent implements OnInit, OnDestroy {
         })
         this.getReportSubscription = this.reportService.getLatestReport().pipe(map(report => {
             console.log("Running postprocess")
-            this.ajs.postprocess(report.markAsInventoriedField, report.scanInItems, report.items, report.library, report.circDesk)
+            this.ajs.postprocess(report.markAsInventoriedField, report.scanInItems, report.unsortedItems, report.library, report.circDesk)
         })).subscribe()
     }
 
