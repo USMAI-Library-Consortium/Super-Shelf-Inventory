@@ -13,7 +13,8 @@ export interface PhysicalItem {
     pid: string | null,
 
     title: string | null,
-    callNumber: string | null
+    callNumber: string | null,
+    description: string | null,
     library: string | null,
     location: string | null,
     itemMaterialType: string | null,
@@ -56,6 +57,7 @@ export class ParseReportService {
                         [key: string]: {
                             title: string,
                             callNumber: string,
+                            description: string,
                             mmsId: string,
                             holdingId: string,
                             pid: string,
@@ -75,6 +77,7 @@ export class ParseReportService {
                         dataLookup[row[" Barcode"]] = {
                             title: row[" Title"],
                             callNumber: row[" Call Number"],
+                            description: row["Description"],
                             mmsId: row["MMS Record ID"],
                             holdingId: row["HOL Record ID"],
                             pid: row["Item PID"],
@@ -95,10 +98,12 @@ export class ParseReportService {
                         if (dataLookup.hasOwnProperty(`'${barcode}'`)) {
                             // If the item is in Alma...
                             const data = dataLookup[`'${barcode}'`]
+                            console.log(data.description)
                             physicalItems.push({
                                 barcode,
                                 existsInAlma: true,
                                 title: data.title,
+                                description: data.description.replace(" ", ""),
                                 mmsId: data.mmsId?.replace(/'/g, ""),
                                 holdingId: data.holdingId?.replace(/'/g, ""),
                                 pid: data.pid?.replace(/'/g, ""),
@@ -120,6 +125,7 @@ export class ParseReportService {
                                 barcode,
                                 existsInAlma: false,
                                 title: null,
+                                description: null,
                                 mmsId: null,
                                 holdingId: null,
                                 pid: null,

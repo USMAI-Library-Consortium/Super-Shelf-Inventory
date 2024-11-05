@@ -7,6 +7,7 @@ import {filter, map, take} from "rxjs/operators";
 export interface ProcessedPhysicalItem extends PhysicalItem {
     hasProblem: boolean,
     callSort: string | null,
+    normalizedDescription: string | null,
     sortable: boolean,
     actualLocation: number | null,
     actualLocationInUnsortablesRemoved: number | null,
@@ -92,6 +93,7 @@ export class ReportService {
                     ...physicalItem,
                     hasProblem: false,
                     callSort: null,
+                    normalizedDescription: null,
                     sortable: true,
                     actualLocation: null,
                     actualLocationInUnsortablesRemoved: null,
@@ -291,36 +293,38 @@ export class ReportService {
             const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
 
             const correctPreviousItemCallNum = index > 0 ? sorted[index - 1].callNumber : "LOCATION START"
+            const correctPreviousItemDescription = index > 0 ? sorted[index - 1].description : "LOCATION START"
             const correctNextItemCallNum = index < sorted.length - 1 ? sorted[index + 1].callNumber : "LOCATION END"
+            const correctNextItemDescription = index < sorted.length - 1 ? sorted[index + 1].description : "LOCATION END"
+
+            const itemIsSerial = correctNextItemCallNum === item.callNumber || correctPreviousItemCallNum === item.callNumber
 
             // Get actual previous call number based on actualLocation
             const actualPreviousItemCallNum = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].callNumber : "LOCATION START";
+            const actualPreviousDescription = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].description : "LOCATION START";
             // Get actual next call number based on actualLocation
             const actualNextItemCallNumber = actualLocationIndex < unsortedWithUnsortablesRemoved.length - 1 ? unsortedWithUnsortablesRemoved[actualLocationIndex + 1].callNumber : "LOCATION END";
+            const actualNextItemDescription = actualLocationIndex < unsortedWithUnsortablesRemoved.length - 1 ? unsortedWithUnsortablesRemoved[actualLocationIndex + 1].description : "LOCATION END";
 
             const previousItemIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum
             const nextItemIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum
 
             const itemInCorrectRelativePosition = previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
 
+            const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
+            const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
+            const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
             if (!itemIsInTheCorrectAbsolutePosition) {
-                if (itemInCorrectRelativePosition) {
-                    item.hasOrderProblem = "**Out Of Order section continued**"
-                }
-
-                const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-                if (isRogueItem) {
-                    item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
-                }
-
-                const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
-                if (isFirstItemOfBadSection) {
-                    item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
-                }
-
-                const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-                if (isLastItemOfBadSection) {
-                    item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
+                if (isFirstItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
+                if (isLastItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
+                if (!itemIsSerial) {
+                    if (itemInCorrectRelativePosition) item.hasOrderProblem = "**Out Of Order section continued**"
+                    if (isRogueItem) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
+                } else {
+                    const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
+                    const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
+                    const isOutOfOrderWithinSerial = !isFirstItemOfBadSection && !isLastItemOfBadSection && (!previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect)
+                    if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum }' (${item.description}) and '${correctNextItemCallNum}' (${item.description})`
                 }
                 item.hasProblem = true;
             }
@@ -354,6 +358,7 @@ export class ReportService {
                 "Actual Position": item.actualLocation,
                 "Call Number": item.callNumber,
                 "Normalized Call Number": item.callSort,
+                "Description": item.description,
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
@@ -406,6 +411,7 @@ export class ReportService {
             {wch: 15},  // Actual Position column width
             {wch: 25},  // Call Number column width
             {wch: 30},  // Normalized Call Number column width
+            {wch: 15},  // Normalized Description
             {wch: 58},  // Title column width
             {wch: 30},
             {wch: 30},
@@ -428,7 +434,39 @@ export class ReportService {
     public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem) => {
         const aCN: string = a.callSort ? a.callSort : this.normalizeLC(a.callNumber)
         const bCN: string = b.callSort ? b.callSort : this.normalizeLC(b.callNumber)
-        return aCN.localeCompare(bCN)
+        let compareVal = aCN.localeCompare(bCN)
+        if (compareVal === 0) {
+            a.normalizedDescription = this.normalizeDescription(a.description)
+            b.normalizedDescription = this.normalizeDescription(b.description)
+            if (a.normalizedDescription && b.normalizedDescription) {
+                // If call numbers are the same, and both have a description, sort by the description.
+                compareVal = a.normalizedDescription.localeCompare(b.normalizedDescription)
+            }
+        }
+        return compareVal
+    }
+
+    protected normalizeDescription(description: string) {
+        if (!description) return ""
+        const {lcCallNumber, integerMarkers} = this.prepareCallNumber(description)
+        let normalizedDescription = lcCallNumber
+
+        let skip = false
+        integerMarkers.forEach(marker => {
+            const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker>${marker})(\\.)?\\s*(?<integer>\\d+);?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
+            const markerMatch = normalizedDescription.match(exp2); // Apply regex on 'theTrimmings'
+
+            if (markerMatch?.groups && !skip) { // Safely access groups
+                const {integerMarker, integer, date1, date2} = markerMatch.groups;
+                const paddedInteger = integer.padStart(5, '0');
+                description = `${integerMarker} ${paddedInteger} ${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
+                skip = true
+            }
+        });
+
+        description = description.replace("\\", "")
+
+        return description;
     }
 
     public normalizeLC(originalLCNumber: string) {
@@ -441,29 +479,7 @@ export class ReportService {
         const unparsable = problemsToTop ? " " : "~";
         if (!originalLCNumber) return unparsable
 
-        let lcCallNumber = originalLCNumber.toUpperCase();
-        const integerMarkers = [
-            "C.",
-            "BD.",
-            "DISC",
-            "DISK",
-            "NO.",
-            "PT.",
-            "v.",
-            "V.",
-            "VOL.",
-            "OP."
-        ]; // A number that follows one of these should be treated as an integer not a decimal.
-
-        for (let mark of integerMarkers) {
-            mark = mark.toUpperCase()
-            mark = mark.replace(".", "\\."); // Escape the dot so it can be used as a regex pattern
-            const regex = new RegExp(`${mark}(\\d+)`, "g");
-            lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Add a semicolon to distinguish it as an integer.
-        }
-
-        // Remove any initial white space
-        lcCallNumber = lcCallNumber.trimStart()
+        let {lcCallNumber, integerMarkers} = this.prepareCallNumber(originalLCNumber);
 
         const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z]*)(?<cutter1Number>\d*))?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+))?\s*(?<theTrimmings>.*)$/;
         const match = lcCallNumber.match(lcRegex);
@@ -525,6 +541,33 @@ export class ReportService {
         }
 
         return `${initialLetters.padEnd(4, " ")} ${classNumber.padStart(5, "0")}${decimalNumber.padEnd(12, "0")} ${cutter1 ? cutter1Letter + cutter1Number.padEnd(7, "0") : "        "} ${cutter2 ? cutter2Letter + cutter2Number.padEnd(7, "0") : "        "} ${theTrimmings}`
+    }
+
+    private prepareCallNumber(originalLCNumber: string) {
+        let lcCallNumber = originalLCNumber.toUpperCase();
+        const integerMarkers = [
+            "C.",
+            "BD.",
+            "DISC",
+            "DISK",
+            "PT.",
+            "v.",
+            "V.",
+            "VOL.",
+            "OP.",
+            "NO."
+        ]; // A number that follows one of these should be treated as an integer not a decimal.
+
+        for (let mark of integerMarkers) {
+            mark = mark.toUpperCase()
+            mark = mark.replace(".", "\\."); // Escape the dot so it can be used as a regex pattern
+            const regex = new RegExp(`${mark}(\\d+)`, "g");
+            lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Add a semicolon to distinguish it as an integer.
+        }
+
+        // Remove any initial white space
+        lcCallNumber = lcCallNumber.trimStart()
+        return {lcCallNumber, integerMarkers};
     }
 
     private sortDewey(right: PhysicalItem, left: PhysicalItem) {
