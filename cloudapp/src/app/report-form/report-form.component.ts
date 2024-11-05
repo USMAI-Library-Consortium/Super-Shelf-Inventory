@@ -84,6 +84,7 @@ export class ReportForm implements OnInit, OnDestroy {
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
             sortBy: ["actualOrder", Validators.required],
+            sortSerialsByDescription: [false, Validators.required],
             markAsInventoried: [false, Validators.required],
             scanInItems: [false, Validators.required],
             circDesk: [null],
@@ -242,9 +243,10 @@ export class ReportForm implements OnInit, OnDestroy {
         const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
         const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
         const sortBy = this.inventoryForm.get("sortBy").value
+        const sortSerialsByDescription = this.inventoryForm.get("sortSerialsByDescription").value
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
-        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, markAsInventoried, scanInItems, circDesk, this.ajs.scanDate)
+        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, markAsInventoried, scanInItems, circDesk, this.ajs.scanDate)
         this.router.navigate(["/", 'report-loading'])
     }
 

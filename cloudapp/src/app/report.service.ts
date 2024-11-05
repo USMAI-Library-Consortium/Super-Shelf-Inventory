@@ -77,6 +77,7 @@ export class ReportService {
         orderProblemLimit: string,
         reportOnlyProblems: boolean,
         sortBy: string,
+        sortSerialsByDescription: boolean,
         markAsInventoriedField: string | null,
         scanInItems: boolean,
         circDeskCode: string | null,
@@ -143,12 +144,14 @@ export class ReportService {
             })
 
             // Create a sorted array.
-            const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "Dewey" ? this.sortDewey : this.sortLC)
+            const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "Dewey" ? this.sortDewey : (a, b) => {
+                return this.sortLC(a, b, sortSerialsByDescription)
+            })
 
             sorted.forEach((item, index) => {
                 // Flag order issues unless "Only problems other than CN Order" is requested
                 if (orderProblemLimit !== "onlyOther") {
-                    this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved);
+                    this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved, sortSerialsByDescription);
                 } // Finished calculating order issues
 
                 // Flag other issues unless "Only CN Order problems" is requested.
@@ -207,7 +210,7 @@ export class ReportService {
     protected getProblemCounts(orderProblemLimit: string, items: ProcessedPhysicalItem[]) {
         // Get order problems
         const orderProblemCount = (orderProblemLimit !== "onlyOther") ? items.reduce((acc, item) => {
-            return item.hasOrderProblem ? acc + 1 : acc
+            return item.hasOrderProblem && item.hasOrderProblem !== "**Serial Order Not Checked**" ? acc + 1 : acc
         }, 0) : "n/a"
         const temporaryLocationProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
             return item.hasTemporaryLocationProblem ? acc + 1 : acc
@@ -287,7 +290,7 @@ export class ReportService {
         }
     }
 
-    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[]) {
+    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[], sortSerialsByDescription: boolean) {
         if (item.existsInAlma) {
             const actualLocationIndex = item.actualLocationInUnsortablesRemoved - 1
             const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
@@ -321,20 +324,23 @@ export class ReportService {
                     if (itemInCorrectRelativePosition) item.hasOrderProblem = "**Out Of Order section continued**"
                     if (isRogueItem) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
                 } else {
-                    const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
-                    const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
-                    const isOutOfOrderWithinSerial = !isFirstItemOfBadSection && !isLastItemOfBadSection && (!previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect)
-                    if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum }' (${item.description}) and '${correctNextItemCallNum}' (${item.description})`
+                    if (sortSerialsByDescription) {
+                        const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
+                        const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
+                        const isOutOfOrderWithinSerial = !isFirstItemOfBadSection && !isLastItemOfBadSection && (!previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect)
+                        if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum }' (${item.description}) and '${correctNextItemCallNum}' (${item.description})`
+                    }
                 }
                 item.hasProblem = true;
             }
+
+            if (itemIsSerial && !sortSerialsByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Serial Order Not Checked**" : "**Serial Order Not Checked**"
         } else {
             item.hasProblem = true
         }
     }
 
     generateAndDownloadExcel(reportData: ReportData) {
-
         // if sortBy is by actual order, use the unsorted array. Else, use the sorted array but add all unsorted items
         // to the end
         let arrayToDisplay: ProcessedPhysicalItem[];
@@ -431,11 +437,11 @@ export class ReportService {
         XLSX.writeFile(workbook, reportData.outputFilename);
     }
 
-    public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem) => {
+    public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortSerialsByDescription: boolean) => {
         const aCN: string = a.callSort ? a.callSort : this.normalizeLC(a.callNumber)
         const bCN: string = b.callSort ? b.callSort : this.normalizeLC(b.callNumber)
         let compareVal = aCN.localeCompare(bCN)
-        if (compareVal === 0) {
+        if (compareVal === 0 && sortSerialsByDescription) {
             a.normalizedDescription = this.normalizeDescription(a.description)
             b.normalizedDescription = this.normalizeDescription(b.description)
             if (a.normalizedDescription && b.normalizedDescription) {

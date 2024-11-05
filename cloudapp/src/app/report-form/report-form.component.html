@@ -93,6 +93,14 @@
             </mat-radio-group>
         </div>
 
+        <div class="inventory-form__field">
+            <label for="sortSerialsByDescription">Attempt to sort Serials by Description?</label>
+            <mat-radio-group name="sortSerialsByDescription" id="sortSerialsByDescription" formControlName="sortSerialsByDescription">
+                <mat-radio-button [value]="true">Yes</mat-radio-button>
+                <mat-radio-button [value]="false">No</mat-radio-button>
+            </mat-radio-group>
+        </div>
+
         <br>
         <h2 class="inventory-form__sectionhead">Postprocess Settings</h2>
 
