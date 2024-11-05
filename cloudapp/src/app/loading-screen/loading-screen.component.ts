@@ -14,7 +14,7 @@ export class LoadingScreenComponent implements OnInit, OnDestroy{
   private userMessagesSubscription: Subscription
   private loadCompleteSubscription: Subscription
 
-  userMessages: string[] = []
+  userMessages: string[] = ["Please wait..."]
 
   constructor(private ajs: AlmaJobService, private router: Router) { }
 

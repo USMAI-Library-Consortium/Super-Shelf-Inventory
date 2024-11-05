@@ -378,14 +378,10 @@ export class ReportService {
             if (!(reportData.orderProblemLimit === "onlyOrder")) {
                 reportCols = {
                     ...reportCols,
-                    "Wrong Library Problem": item.hasLibraryProblem,
-                    "Wrong Location Problem": item.hasLocationProblem,
-                    "Not In Place Problem": item.hasNotInPlaceProblem,
-                    "In Temporary Location Problem": item.hasTemporaryLocationProblem,
-                    "Policy Problem": item.hasPolicyProblem,
-                    "Has Active Request": item.hasRequestProblem,
-                    "Item Material Type Problem": item.hasTypeProblem,
-                    "Needs to be Scanned In": item.needsToBeScannedIn,
+                    "Other Problems": [item.hasLibraryProblem, item.hasLocationProblem, item.hasNotInPlaceProblem, item.hasTemporaryLocationProblem, item.hasPolicyProblem, item.hasRequestProblem, item.hasTypeProblem].filter(val => {
+                        return !!val
+                    }).join(" || "),
+                    "Needs to be Scanned In": item.needsToBeScannedIn ? true : "",
                     "Scanned In": item.needsToBeScannedIn ? item.wasScannedIn : ""
                 }
             }
@@ -419,14 +415,8 @@ export class ReportService {
             {wch: 30},  // Normalized Call Number column width
             {wch: 15},  // Normalized Description
             {wch: 58},  // Title column width
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
-            {wch: 30},
+            {wch: 50},
+            {wch: 75},
         ];
 
         const workbook: XLSX.WorkBook = {

@@ -15,7 +15,7 @@ export class ReportLoadingComponent implements OnInit, OnDestroy {
     postprocessCompleteSubscription: Subscription;
     userMessagesSubscription: Subscription;
 
-    userMessages: string[] = []
+    userMessages: string[] = ["Please wait..."]
 
     constructor(private reportService: ReportService, public ajs: AlmaJobService, private router: Router) {
     }
