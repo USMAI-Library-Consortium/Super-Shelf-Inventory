@@ -450,17 +450,24 @@ export class ReportService {
         let normalizedDescription = lcCallNumber
 
         integerMarkers.forEach(marker => {
-            const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker1>${marker})(\\.)?\\s*(?<integer1>\\d+).*(?<secondVol>(?<integerMarker2>${marker})(\\.)?\\s*(?<integer2>\\d+))?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
-            const markerMatch = normalizedDescription.match(exp2); // Apply regex on 'theTrimmings'
+            marker = marker.toUpperCase()
+            // const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker1>${marker})(\\.)?\\s*(?<integer1>\\d+).*(?<secondVol>(?<integerMarker2>${marker})(\\.)?\\s*(?<integer2>\\d+))?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
+            // const markerMatch = normalizedDescription.match(exp2); // Apply regex on 'theTrimmings'
+            //
+            // if (markerMatch?.groups) { // Safely access groups
+            //     const {prefix, integerMarker1, integer1, integerMarker2, integer2, secondVol, date1, date2} = markerMatch.groups;
+            //     const paddedInteger1 = integer1.padStart(5, '0');
+            //     description = `${prefix ? prefix + " ": ""}${integerMarker1} ${paddedInteger1} ${secondVol ? integerMarker2 + " " + integer2.padStart(5, "0") + " " : ""}${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
+            // }
 
-            if (markerMatch?.groups) { // Safely access groups
-                const {prefix, integerMarker1, integer1, integerMarker2, integer2, secondVol, date1, date2} = markerMatch.groups;
-                const paddedInteger1 = integer1.padStart(5, '0');
-                description = `${prefix ? prefix + " ": ""}${integerMarker1} ${paddedInteger1} ${secondVol ? integerMarker2 + " " + integer2.padStart(5, "0") + " " : ""}${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
-            }
+            description = description.replace(new RegExp(`(?<integerMarker>${marker})\\.?\\s*(?<integer>\\d+)`, "gi"), (match, integerMarker, integer) =>{
+                return `${marker} ${integer.padStart(5, "0")}`
+            })
         });
 
         description = description.replace("\\", "")
+        description = description.replace(/\s{2,}/, " ")
+        description = description.replace(/(\d)\s*-\s*(\d)/g, '$1-$2');
 
         return description;
     }
