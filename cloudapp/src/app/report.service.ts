@@ -264,11 +264,13 @@ export class ReportService {
         if (!locationCodes.includes(item.location)) {
             item.hasProblem = true
             item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
+            item.hasOrderProblem = null
         }
 
         if (item.library !== libraryCode) {
             item.hasProblem = true
             item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
+            item.hasOrderProblem = null
         }
 
         if (expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)) {
@@ -318,20 +320,20 @@ export class ReportService {
             const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
             const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
             if (!itemIsInTheCorrectAbsolutePosition) {
-                if (isFirstItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
-                if (isLastItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
+                // if (isFirstItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
+                // if (isLastItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
                 if (!itemIsSerial) {
-                    if (itemInCorrectRelativePosition) item.hasOrderProblem = "**Out Of Order section continued**"
+                    // if (itemInCorrectRelativePosition) item.hasOrderProblem = "**Out Of Order section continued**"
                     if (isRogueItem) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
                 } else {
                     if (sortSerialsByDescription) {
                         const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
                         const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
-                        const isOutOfOrderWithinSerial = !isFirstItemOfBadSection && !isLastItemOfBadSection && (!previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect)
-                        if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum }' (${item.description}) and '${correctNextItemCallNum}' (${item.description})`
+                        const isOutOfOrderWithinSerial = !previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect
+                        if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum }' (${correctPreviousItemDescription}) and '${correctNextItemCallNum}' (${correctNextItemDescription})`
                     }
                 }
-                item.hasProblem = true;
+                // item.hasProblem = true;
             }
 
             if (itemIsSerial && !sortSerialsByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Serial Order Not Checked**" : "**Serial Order Not Checked**"
@@ -364,7 +366,7 @@ export class ReportService {
                 "Actual Position": item.actualLocation,
                 "Call Number": item.callNumber,
                 "Normalized Call Number": item.callSort,
-                "Description": item.description,
+                "Description": item.description + " || " + item.normalizedDescription,
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
@@ -447,16 +449,14 @@ export class ReportService {
         const {lcCallNumber, integerMarkers} = this.prepareCallNumber(description)
         let normalizedDescription = lcCallNumber
 
-        let skip = false
         integerMarkers.forEach(marker => {
-            const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker>${marker})(\\.)?\\s*(?<integer>\\d+);?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
+            const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker1>${marker})(\\.)?\\s*(?<integer1>\\d+).*(?<secondVol>(?<integerMarker2>${marker})(\\.)?\\s*(?<integer2>\\d+))?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
             const markerMatch = normalizedDescription.match(exp2); // Apply regex on 'theTrimmings'
 
-            if (markerMatch?.groups && !skip) { // Safely access groups
-                const {integerMarker, integer, date1, date2} = markerMatch.groups;
-                const paddedInteger = integer.padStart(5, '0');
-                description = `${integerMarker} ${paddedInteger} ${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
-                skip = true
+            if (markerMatch?.groups) { // Safely access groups
+                const {prefix, integerMarker1, integer1, integerMarker2, integer2, secondVol, date1, date2} = markerMatch.groups;
+                const paddedInteger1 = integer1.padStart(5, '0');
+                description = `${prefix ? prefix + " ": ""}${integerMarker1} ${paddedInteger1} ${secondVol ? integerMarker2 + " " + integer2.padStart(5, "0") + " " : ""}${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
             }
         });
 
@@ -519,17 +519,17 @@ export class ReportService {
         if (theTrimmings) {
             /* TESTING NEW SECTION TO HANDLE VOLUME & PART NUMBERS */
             integerMarkers.forEach(marker => {
-                const exp2 = new RegExp(`(?<trimmingStart>.*)?(?<integerMarker>${marker})(\\.)?\\s*(?<integer>\\d+);(?<theRest>.*)?`, "i")
+                const exp2 = new RegExp(`(?<trimmingStart>.*)?(?<integerMarker>${marker})(\\.)?\\s*(?<integer>\\d+);?(?<theRest>.*)?`, "i")
                 const markerMatch = theTrimmings.match(exp2); // Apply regex on 'theTrimmings'
 
                 if (markerMatch?.groups) { // Safely access groups
                     const {trimmingStart, integerMarker, integer, theRest} = markerMatch.groups;
                     const paddedInteger = integer.padStart(5, '0');
-                    theTrimmings = `${trimmingStart ? trimmingStart : ""}${integerMarker}${paddedInteger}${theRest ? theRest : ""}`;
+                    theTrimmings = `${trimmingStart ? trimmingStart : ""}${integerMarker === "VOL" ? "V" : integerMarker}${paddedInteger}${theRest ? theRest : ""}`;
                 }
             });
 
-            theTrimmings = theTrimmings.replace(/(\.)(\d)/g, '$1 $2'); //Matches a period (.) followed by a digit, adds a space between
+            // theTrimmings = theTrimmings.replace(/(\.)(\d)/g, '$1 $2'); //Matches a period (.) followed by a digit, adds a space between
             theTrimmings = theTrimmings.replace(/(\d)\s*-\s*(\d)/g, '$1-$2'); // Matches two digits separated by a dash (-), with whitespace on either side, ensures no whitespace around the dash
             theTrimmings = theTrimmings.trimStart()
 
@@ -542,24 +542,22 @@ export class ReportService {
     private prepareCallNumber(originalLCNumber: string) {
         let lcCallNumber = originalLCNumber.toUpperCase();
         const integerMarkers = [
-            "C.",
-            "BD.",
+            "C",
+            "BD",
             "DISC",
             "DISK",
-            "PT.",
-            "v.",
-            "V.",
-            "VOL.",
-            "OP.",
-            "NO."
+            "PT",
+            "V",
+            "VOL",
+            "OP",
+            "NO"
         ]; // A number that follows one of these should be treated as an integer not a decimal.
 
-        for (let mark of integerMarkers) {
-            mark = mark.toUpperCase()
-            mark = mark.replace(".", "\\."); // Escape the dot so it can be used as a regex pattern
-            const regex = new RegExp(`${mark}(\\d+)`, "g");
-            lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Add a semicolon to distinguish it as an integer.
-        }
+        // for (let mark of integerMarkers) {
+        //     mark = mark.toUpperCase()// Escape the dot so it can be used as a regex pattern
+        //     const regex = new RegExp(`${mark}(\\d+)`, "g");
+        //     lcCallNumber = lcCallNumber.replace(regex, `${mark}$1;`); // Add a semicolon to distinguish it as an integer.
+        // }
 
         // Remove any initial white space
         lcCallNumber = lcCallNumber.trimStart()
