@@ -449,6 +449,7 @@ export class ReportService {
         const {lcCallNumber, integerMarkers} = this.prepareCallNumber(description)
         let normalizedDescription = lcCallNumber
 
+        integerMarkers.push("n")
         integerMarkers.forEach(marker => {
             marker = marker.toUpperCase()
             // const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker1>${marker})(\\.)?\\s*(?<integer1>\\d+).*(?<secondVol>(?<integerMarker2>${marker})(\\.)?\\s*(?<integer2>\\d+))?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
@@ -461,7 +462,7 @@ export class ReportService {
             // }
 
             description = description.replace(new RegExp(`(?<integerMarker>${marker})\\.?\\s*(?<integer>\\d+)`, "gi"), (match, integerMarker, integer) =>{
-                return `${marker} ${integer.padStart(5, "0")}`
+                return `${marker}${integer.padStart(5, "0")}`
             })
         });
 
