@@ -366,7 +366,7 @@ export class ReportService {
                 "Actual Position": item.actualLocation,
                 "Call Number": item.callNumber,
                 "Normalized Call Number": item.callSort,
-                "Description": item.description + " || " + item.normalizedDescription,
+                "Description": item.description,
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 

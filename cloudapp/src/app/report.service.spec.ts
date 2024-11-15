@@ -1,9 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ReportService } from './report.service';
-import {PhysicalItem} from "./parse-report.service";
+import {ProcessedPhysicalItem, ReportService} from './report.service';
 
-let getPhysicalItem = (callNum: string): PhysicalItem => {
+let getPhysicalItem = (callNum: string): ProcessedPhysicalItem => {
 
   return {
     barcode: "string",
@@ -16,6 +15,7 @@ let getPhysicalItem = (callNum: string): PhysicalItem => {
     title: "",
     callNumber: callNum,
     library: "",
+    description: "",
     location: "",
     itemMaterialType: "",
     policyType: "",
@@ -23,7 +23,25 @@ let getPhysicalItem = (callNum: string): PhysicalItem => {
     processType: "",
     lastModifiedDate: 12,
     inTempLocation: false,
-    requested: false
+    requested: false,
+
+    hasProblem: false,
+    callSort: null,
+    normalizedDescription: null,
+    sortable: true,
+    actualLocation: null,
+    actualLocationInUnsortablesRemoved: null,
+    correctLocation: null,
+    hasOrderProblem: null,
+    hasTemporaryLocationProblem: null,
+    hasLibraryProblem: null,
+    hasLocationProblem: null,
+    hasNotInPlaceProblem: null,
+    hasPolicyProblem: null,
+    hasRequestProblem: null,
+    hasTypeProblem: null,
+    needsToBeScannedIn: false,
+    wasScannedIn: false
   }
 }
 
@@ -43,7 +61,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("PS3572.A387Z6 2004")
     const b =  getPhysicalItem("PS3572.A39D66 2004")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 
@@ -56,7 +74,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("PN3432.G6 1975")
     const b =  getPhysicalItem("PN3433.4.B73 2007")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 
@@ -64,7 +82,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("NA31.W45 1976")
     const b = getPhysicalItem("NA105.F87")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 
@@ -72,7 +90,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("M23.B4 op.7 2012")
     const b = getPhysicalItem("M23.B4 op.57 1981")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 
@@ -80,7 +98,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("QA1.A647 v.3")
     const b = getPhysicalItem("QA1.A647 v.27")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 
@@ -88,7 +106,7 @@ describe('ReportService', () => {
     const a = getPhysicalItem("QA76.7.C36 2013")
     const b = getPhysicalItem("QA76.73.C153Y48 2005")
 
-    let result = service.sortLC(a, b)
+    let result = service.sortLC(a, b, false)
     expect(result).toEqual(-1)
   })
 });
