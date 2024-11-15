@@ -34,6 +34,6 @@
     <span *ngIf="ajs.postprocessComplete$ | async as postprocessResults">
             <p>Items Scanned In: {{ postprocessResults.itemsScannedIn }} {{ postprocessResults.scanInWasRun ? '' : '(not run)' }}</p>
             <p>Items Failed Scanned In: {{ postprocessResults.itemsFailedScanIn }} {{ postprocessResults.scanInWasRun ? '' : '(not run)' }}</p>
-            <p>Marked As Inventoried: {{ postprocessResults.markAsInventoriedWasRun ? 'yes - in ' + reportData.markAsInventoriedField : 'no' + (reportData.markAsInventoriedField ? '' : ' (not run)') }}</p>
+            <p>Marked As Inventoried: {{ postprocessResults.markAsInventoriedWasRun ? 'started successfully - in ' + reportData.markAsInventoriedField : 'no' + (reportData.markAsInventoriedField ? '' : ' (not run)') }}</p>
     </span>
 </div>

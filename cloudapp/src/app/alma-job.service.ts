@@ -99,7 +99,7 @@ export class AlmaJobService implements OnDestroy {
     }
 
     ngOnDestroy(): void {
-        this.reset()
+        this.reset(false)
     }
 
     public getJobResults() {
@@ -111,7 +111,7 @@ export class AlmaJobService implements OnDestroy {
         this.markAsInventoriedComplete$.next(null)
     }
 
-    public reset() {
+    public reset(markAsInventoriedStarted: boolean) {
         console.log("Resetting AJS")
         this.loadComplete$.next(null)
         this.excelFile = null
@@ -119,7 +119,7 @@ export class AlmaJobService implements OnDestroy {
         this.fileLastModifiedDate = null
         this.scanDate = null
         this.barcodes = null
-        if (this.setId) {
+        if (this.setId && !markAsInventoriedStarted) {
             this.deleteSet().subscribe(result => {
                 console.log("Set Deleted")
             }, error => {

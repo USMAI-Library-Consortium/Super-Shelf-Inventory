@@ -39,7 +39,7 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
   }
 
   onBack(): void {
-    this.ajs.reset()
+    this.ajs.reset(false)
     this.router.navigate(["/"])
   }
 

@@ -25,10 +25,12 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
 
     onSubmit() {
-        this.reportService.reset()
-        this.prs.reset()
-        this.ajs.reset()
-        this.router.navigate(['/'])
+        this.reportService.getLatestReport().subscribe(data => {
+            this.reportService.reset()
+            this.prs.reset()
+            this.ajs.reset(!!data.markAsInventoriedField)
+            this.router.navigate(['/'])
+        })
     }
 
     onBack() {
