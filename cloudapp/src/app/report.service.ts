@@ -84,7 +84,7 @@ export class ReportService {
         scanDate: number
     ): Observable<ReportData> {
         this.reportProcessed$.next(null)
-        this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().pipe(map(data => {
+        this.physicalItemsSubscription = this.prs.getParsedPhysicalItems().pipe(map(data => {
             return JSON.parse(JSON.stringify(data))
         })).subscribe(physicalItems => {
             const unsorted: ProcessedPhysicalItem[] = []

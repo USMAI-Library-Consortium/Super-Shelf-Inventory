@@ -151,7 +151,7 @@ export class ReportForm implements OnInit, OnDestroy {
                 // })
             });
 
-        this.physicalItemsSubscription = this.prs.getParsedPhysicalItemsOnce().subscribe(physicalItems => {
+        this.physicalItemsSubscription = this.prs.getParsedPhysicalItems().subscribe(physicalItems => {
             physicalItems.forEach((physicalItem) => {
                 if (physicalItem.library) {
                     if (this.libraryDict.hasOwnProperty(physicalItem.library)) {

@@ -102,8 +102,11 @@ export class AlmaJobService implements OnDestroy {
         this.reset(false)
     }
 
+    /**
+     * Returns the latest job result.
+     */
     public getJobResults() {
-        return this.loadComplete$.pipe(filter(runJobOutput => runJobOutput !== null))
+        return this.loadComplete$.pipe(filter(runJobOutput => runJobOutput !== null), take(1))
     }
 
     public resetPostProcess() {

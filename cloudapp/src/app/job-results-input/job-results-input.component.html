@@ -10,7 +10,7 @@
             mat-flat-button
             color="primary"
             (click)="onSubmit()"
-            [disabled]="!(this.ajs.loadComplete$ | async) || this.reportForm.invalid"
+            [disabled]="!(this.ready$ | async) || this.reportForm.invalid"
     >
         Next
     </button>

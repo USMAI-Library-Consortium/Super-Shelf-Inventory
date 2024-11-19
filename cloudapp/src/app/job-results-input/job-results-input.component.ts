@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
-import { Subscription } from "rxjs";
+import {BehaviorSubject, Subscription} from "rxjs";
 import {
   AlmaJobService,
   RunJobOutput,
@@ -15,7 +15,10 @@ import { Router } from "@angular/router";
 })
 export class JobResultsInputComponent implements OnInit, OnDestroy {
   reportForm: FormGroup;
-  jobResultsSub: Subscription;
+  jobResultsSubscription: Subscription;
+  parseReportSubscription: Subscription;
+
+  ready$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
   constructor(
       public ajs: AlmaJobService,
@@ -28,14 +31,11 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     this.reportForm = this.fb.group({
       reportFormInput: [null, Validators.required],
     });
-
-    this.jobResultsSub = this.ajs.loadComplete$.subscribe((result) => {
-      console.log(result);
-    })
   }
 
   ngOnDestroy(): void {
-    this.jobResultsSub.unsubscribe();
+    if(this.jobResultsSubscription) this.jobResultsSubscription.unsubscribe();
+    if(this.parseReportSubscription) this.parseReportSubscription.unsubscribe();
   }
 
   onBack(): void {
@@ -48,7 +48,12 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
   }
 
   onFileSelect(event: Event) {
+    this.ready$.next(false)
     const input = event.target as HTMLInputElement;
-    this.prs.parseReport(input.files[0]);
+    this.jobResultsSubscription = this.ajs.getJobResults().subscribe(result => {
+      this.parseReportSubscription = this.prs.parseReport(input.files[0], result).subscribe(result => {
+        this.ready$.next(true);
+      });
+    })
   }
 }

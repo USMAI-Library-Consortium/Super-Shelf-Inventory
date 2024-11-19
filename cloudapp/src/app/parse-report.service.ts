@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import * as Papa from 'papaparse'
-import {ReplaySubject, Subscription} from 'rxjs';
-import {AlmaJobService} from "./alma-job.service";
+import {Observable, ReplaySubject, Subscription} from 'rxjs';
+import {AlmaJobService, RunJobOutput} from "./alma-job.service";
 import {filter, take} from "rxjs/operators";
 
 export interface PhysicalItem {
@@ -31,122 +31,115 @@ export interface PhysicalItem {
 })
 export class ParseReportService {
     private loadComplete$: ReplaySubject<PhysicalItem[] | null> = new ReplaySubject(1)
-    private jobOutputSubscription: Subscription
 
-    constructor(private ajs: AlmaJobService) {}
+    constructor() {
+    }
 
-    public getParsedPhysicalItemsOnce() {
+    public getParsedPhysicalItems() {
         return this.loadComplete$.pipe(filter(physicalItems => {
             return physicalItems !== null
         }), take(1))
     }
 
-    public reset(){
+    public reset() {
         this.loadComplete$.next(null)
-        if(this.jobOutputSubscription) this.jobOutputSubscription.unsubscribe()
     }
 
-    parseReport(file: Papa.LocalFile | string) {
+    parseReport(file: Papa.LocalFile | string, runJobOutput: RunJobOutput): Observable<PhysicalItem[]> {
         this.loadComplete$.next(null)
-        this.jobOutputSubscription = this.ajs.loadComplete$.pipe(filter(runJobOutput => {
-            return runJobOutput !== null
-        }), take(1)).subscribe(runJobOutput => {
-            Papa.parse(file, {
-                complete: (results: any) => {
-                    const dataLookup: {
-                        [key: string]: {
-                            title: string,
-                            callNumber: string,
-                            description: string,
-                            mmsId: string,
-                            holdingId: string,
-                            pid: string,
-                            library: string,
-                            location: string,
-                            itemMaterialType: string,
-                            policyType: string,
-                            status: string,
-                            processType: string,
-                            lastModifiedDate: number,
-                            inTempLocation: boolean,
-                            requested: boolean
-                        }
-                    } = {}
+        Papa.parse(file, {
+            complete: (results: any) => {
+                const dataLookup: {
+                    [key: string]: {
+                        title: string,
+                        callNumber: string,
+                        description: string,
+                        mmsId: string,
+                        holdingId: string,
+                        pid: string,
+                        library: string,
+                        location: string,
+                        itemMaterialType: string,
+                        policyType: string,
+                        status: string,
+                        processType: string,
+                        lastModifiedDate: number,
+                        inTempLocation: boolean,
+                        requested: boolean
+                    }
+                } = {}
 
-                    results.data.forEach(row => {
-                        dataLookup[row[" Barcode"]] = {
-                            title: row[" Title"],
-                            callNumber: row[" Call Number"],
-                            description: row["Description"],
-                            mmsId: row["MMS Record ID"],
-                            holdingId: row["HOL Record ID"],
-                            pid: row["Item PID"],
-                            library: row[" Local Location"],
-                            location: row[" Permanent Physical Location"],
-                            itemMaterialType: row[" Item Material Type"],
-                            policyType: row[" Policy"],
-                            status: row["Status"],
-                            processType: row["Process type"],
-                            lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).valueOf() : new Date(row["Creation date"]).valueOf(),
-                            inTempLocation: row["Temp library"] && row["Temp location"],
-                            requested: row["Process type"] === "REQUESTED"
-                        }
-                    })
+                results.data.forEach(row => {
+                    dataLookup[row[" Barcode"]] = {
+                        title: row[" Title"],
+                        callNumber: row[" Call Number"],
+                        description: row["Description"],
+                        mmsId: row["MMS Record ID"],
+                        holdingId: row["HOL Record ID"],
+                        pid: row["Item PID"],
+                        library: row[" Local Location"],
+                        location: row[" Permanent Physical Location"],
+                        itemMaterialType: row[" Item Material Type"],
+                        policyType: row[" Policy"],
+                        status: row["Status"],
+                        processType: row["Process type"],
+                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).valueOf() : new Date(row["Creation date"]).valueOf(),
+                        inTempLocation: row["Temp library"] && row["Temp location"],
+                        requested: row["Process type"] === "REQUESTED"
+                    }
+                })
 
-                    const physicalItems: PhysicalItem[] = []
-                    runJobOutput.barcodes.forEach(barcode => {
-                        if (dataLookup.hasOwnProperty(`'${barcode}'`)) {
-                            // If the item is in Alma...
-                            const data = dataLookup[`'${barcode}'`]
-                            console.log(data.description)
-                            physicalItems.push({
-                                barcode,
-                                existsInAlma: true,
-                                title: data.title,
-                                description: data.description.replace(" ", ""),
-                                mmsId: data.mmsId?.replace(/'/g, ""),
-                                holdingId: data.holdingId?.replace(/'/g, ""),
-                                pid: data.pid?.replace(/'/g, ""),
-                                callNumber: data.callNumber,
-                                library: data.library,
-                                location: data.location,
-                                policyType: data.policyType,
-                                itemMaterialType: data.itemMaterialType,
-                                status: data.status,
-                                processType: data.processType,
-                                lastModifiedDate: data.lastModifiedDate,
-                                inTempLocation: data.inTempLocation,
-                                requested: data.requested,
-                            })
-                        } else {
-                            console.log(barcode + " does not exist in Alma.")
-                            // Item does NOT exist in Alma
-                            physicalItems.push({
-                                barcode,
-                                existsInAlma: false,
-                                title: null,
-                                description: null,
-                                mmsId: null,
-                                holdingId: null,
-                                pid: null,
-                                callNumber: null,
-                                library: null,
-                                location: null,
-                                policyType: null,
-                                itemMaterialType: null,
-                                status: null,
-                                processType: null,
-                                lastModifiedDate: null,
-                                inTempLocation: null,
-                                requested: null,
-                            })
-                        }
-                    })
-                    console.log("Complete")
-                    this.loadComplete$.next(physicalItems)
-                },
-                header: true // If your CSV has headers
-            });
+                const physicalItems: PhysicalItem[] = []
+                runJobOutput.barcodes.forEach(barcode => {
+                    if (dataLookup.hasOwnProperty(`'${barcode}'`)) {
+                        // If the item is in Alma...
+                        const data = dataLookup[`'${barcode}'`]
+                        physicalItems.push({
+                            barcode,
+                            existsInAlma: true,
+                            title: data.title,
+                            description: data.description.replace(" ", ""),
+                            mmsId: data.mmsId?.replace(/'/g, ""),
+                            holdingId: data.holdingId?.replace(/'/g, ""),
+                            pid: data.pid?.replace(/'/g, ""),
+                            callNumber: data.callNumber,
+                            library: data.library,
+                            location: data.location,
+                            policyType: data.policyType,
+                            itemMaterialType: data.itemMaterialType,
+                            status: data.status,
+                            processType: data.processType,
+                            lastModifiedDate: data.lastModifiedDate,
+                            inTempLocation: data.inTempLocation,
+                            requested: data.requested,
+                        })
+                    } else {
+                        // Item does NOT exist in Alma
+                        physicalItems.push({
+                            barcode,
+                            existsInAlma: false,
+                            title: null,
+                            description: null,
+                            mmsId: null,
+                            holdingId: null,
+                            pid: null,
+                            callNumber: null,
+                            library: null,
+                            location: null,
+                            policyType: null,
+                            itemMaterialType: null,
+                            status: null,
+                            processType: null,
+                            lastModifiedDate: null,
+                            inTempLocation: null,
+                            requested: null,
+                        })
+                    }
+                })
+                this.loadComplete$.next(physicalItems)
+            },
+            header: true // If your CSV has headers
         })
+        return this.getParsedPhysicalItems()
     }
 }
