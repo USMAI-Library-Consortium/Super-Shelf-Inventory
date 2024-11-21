@@ -1,9 +1,10 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import {BehaviorSubject, Subscription} from "rxjs";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
-import { ParseReportService } from "../services/fileParsing/parse-report.service";
 import { Router } from "@angular/router";
+
 import {ExportJobService} from "../services/apis/export-job.service";
+import { ParseReportService } from "../services/fileParsing/parse-report.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 
 @Component({

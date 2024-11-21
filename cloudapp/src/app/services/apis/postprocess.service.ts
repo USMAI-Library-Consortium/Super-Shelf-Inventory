@@ -1,10 +1,11 @@
 import {Injectable} from '@angular/core';
-import {ProcessedPhysicalItem} from "../dataProcessing/report.service";
 import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
-import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 import {catchError, filter, map, take, tap} from "rxjs/operators";
+import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
+
 import {AlmaSet} from "./set.service";
 import {AlmaJob} from "./export-job.service";
+import {ProcessedPhysicalItem} from "../dataProcessing/report.service";
 
 
 interface ScanInResults {
@@ -32,7 +33,8 @@ export class PostprocessService {
     private scanInDone$: BehaviorSubject<ScanInResults | null> = new BehaviorSubject(null);
     private markAsInventoriedStarted$: BehaviorSubject<MarkAsInventoriedJob | null> = new BehaviorSubject(null);
 
-    constructor(private restService: CloudAppRestService, private alert: AlertService) {
+    constructor(private restService: CloudAppRestService,
+                private alert: AlertService) {
     }
 
     public getLatestScanInResults(): Observable<ScanInResults> {

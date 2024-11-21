@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
-import {CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 import {catchError, filter, map, switchMap, take, tap} from "rxjs/operators";
-import {BehaviorSubject, forkJoin, Observable, of, ReplaySubject, Subject} from "rxjs";
+import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
+import {CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 
 
 export interface AlmaSet {

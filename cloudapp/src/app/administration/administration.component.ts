@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
-import {AlertService, CloudAppConfigService} from "@exlibris/exl-cloudapp-angular-lib";
 import {FormGroup} from "@angular/forms";
-import {BehaviorSubject, Observable} from "rxjs";
+import {BehaviorSubject} from "rxjs";
+import {CloudAppConfigService} from "@exlibris/exl-cloudapp-angular-lib";
 
 @Component({
     selector: 'app-administration',
@@ -12,7 +12,7 @@ export class AdministrationComponent implements OnInit {
     configurationForm: FormGroup;
     loading$: BehaviorSubject<boolean> = new BehaviorSubject(true);
 
-    constructor(private configService: CloudAppConfigService, private alert: AlertService) {
+    constructor(private configService: CloudAppConfigService) {
     }
 
     ngOnInit(): void {
@@ -41,6 +41,4 @@ export class AdministrationComponent implements OnInit {
             this.loading$.next(false);
         })
     }
-
-
 }

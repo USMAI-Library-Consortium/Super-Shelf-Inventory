@@ -1,8 +1,9 @@
 import {Injectable} from '@angular/core';
-import {AlmaSet} from "./set.service";
-import {BehaviorSubject, Observable, of, Subject, timer} from "rxjs";
-import {CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
+import {BehaviorSubject, Observable, Subject, timer} from "rxjs";
 import {filter, map, switchMap, take, tap} from "rxjs/operators";
+import {CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
+
+import {AlmaSet} from "./set.service";
 
 export interface AlmaJob {
     jobId: string,

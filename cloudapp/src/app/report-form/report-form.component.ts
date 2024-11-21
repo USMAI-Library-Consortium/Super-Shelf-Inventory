@@ -1,14 +1,15 @@
 import {Subscription, combineLatest, BehaviorSubject, Observable, of} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {CloudAppConfigService, CloudAppRestService,} from "@exlibris/exl-cloudapp-angular-lib";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {ParseReportService} from "../services/fileParsing/parse-report.service";
-import {ReportService} from "../services/dataProcessing/report.service";
-import {Router} from "@angular/router";
-import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {map, switchMap} from "rxjs/operators";
-import {PostprocessService} from "../services/apis/postprocess.service";
+import {Router} from "@angular/router";
+import {CloudAppConfigService, CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
+
 import {SetService} from "../services/apis/set.service";
+import {PostprocessService} from "../services/apis/postprocess.service";
+import {ParseReportService} from "../services/fileParsing/parse-report.service";
+import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
+import {ReportService} from "../services/dataProcessing/report.service";
 
 interface Library {
     name: string;

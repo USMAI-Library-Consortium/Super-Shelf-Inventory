@@ -1,7 +1,8 @@
 import {Injectable} from "@angular/core";
-import {CloudAppStoreService} from "@exlibris/exl-cloudapp-angular-lib";
 import {Observable} from "rxjs";
 import {map, switchMap, tap} from "rxjs/operators";
+import {CloudAppStoreService} from "@exlibris/exl-cloudapp-angular-lib";
+
 import {AlmaJob} from "./export-job.service";
 import {FileInfo} from "../fileParsing/barcode-parser.service";
 

@@ -1,9 +1,10 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {ReportService} from "../services/dataProcessing/report.service";
 import {Subscription} from "rxjs";
-import {ParseReportService} from "../services/fileParsing/parse-report.service";
 import {Router} from "@angular/router";
+
 import {PostprocessService} from "../services/apis/postprocess.service";
+import {ParseReportService} from "../services/fileParsing/parse-report.service";
+import {ReportService} from "../services/dataProcessing/report.service";
 
 @Component({
     selector: 'app-results',
@@ -14,7 +15,10 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
     reportDataSubscription: Subscription;
 
-    constructor(public reportService: ReportService, public postprocessService: PostprocessService, private prs: ParseReportService, private router: Router) {
+    constructor(public reportService: ReportService,
+                public postprocessService: PostprocessService,
+                private prs: ParseReportService,
+                private router: Router) {
     }
 
     ngOnInit(): void {}

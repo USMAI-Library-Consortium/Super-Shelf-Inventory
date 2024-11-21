@@ -1,13 +1,14 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
-import {StateService, PreviousRun} from "../services/apis/state.service";
 import {BehaviorSubject, of, Subscription} from "rxjs";
+import {switchMap} from "rxjs/operators";
 import {AlertService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
+
+import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
-import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
-import {switchMap, tap} from "rxjs/operators";
 import {SetService} from "../services/apis/set.service";
+import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 
 @Component({
     selector: "app-barcode-input",
