@@ -1,7 +1,6 @@
 import {Injectable} from '@angular/core';
 import * as Papa from 'papaparse'
-import {Observable, ReplaySubject, Subscription} from 'rxjs';
-import {AlmaJobService, RunJobOutput} from "./alma-job.service";
+import {BehaviorSubject, Observable} from 'rxjs';
 import {filter, take} from "rxjs/operators";
 
 export interface PhysicalItem {
@@ -21,7 +20,7 @@ export interface PhysicalItem {
     policyType: string | null,
     status: string | null,
     processType: string | null,
-    lastModifiedDate: number | null,
+    lastModifiedDate: string | null,
     inTempLocation: boolean | null,
     requested: boolean | null
 }
@@ -30,24 +29,25 @@ export interface PhysicalItem {
     providedIn: 'root'
 })
 export class ParseReportService {
-    private loadComplete$: ReplaySubject<PhysicalItem[] | null> = new ReplaySubject(1)
+    private physicalItems$: BehaviorSubject<PhysicalItem[] | null> = new BehaviorSubject(null)
 
     constructor() {
     }
 
-    public getParsedPhysicalItems() {
-        return this.loadComplete$.pipe(filter(physicalItems => {
-            return physicalItems !== null
+    public getLatestPhysicalItems() {
+        return this.physicalItems$.pipe(filter(physicalItems => {
+            return physicalItems instanceof Array
         }), take(1))
     }
 
     public reset() {
-        this.loadComplete$.next(null)
+        this.physicalItems$.next(null)
     }
 
-    parseReport(file: Papa.LocalFile | string, runJobOutput: RunJobOutput): Observable<PhysicalItem[]> {
-        this.loadComplete$.next(null)
+    parseReport(file: Papa.LocalFile | string, barcodes: string[]): Observable<PhysicalItem[]> {
+        this.physicalItems$.next(null)
         Papa.parse(file, {
+            header: true, // If your CSV has headers
             complete: (results: any) => {
                 const dataLookup: {
                     [key: string]: {
@@ -63,7 +63,7 @@ export class ParseReportService {
                         policyType: string,
                         status: string,
                         processType: string,
-                        lastModifiedDate: number,
+                        lastModifiedDate: string,
                         inTempLocation: boolean,
                         requested: boolean
                     }
@@ -83,14 +83,14 @@ export class ParseReportService {
                         policyType: row[" Policy"],
                         status: row["Status"],
                         processType: row["Process type"],
-                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).valueOf() : new Date(row["Creation date"]).valueOf(),
+                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime().toString() : new Date(row["Creation date"]).getTime().toString(),
                         inTempLocation: row["Temp library"] && row["Temp location"],
                         requested: row["Process type"] === "REQUESTED"
                     }
                 })
 
                 const physicalItems: PhysicalItem[] = []
-                runJobOutput.barcodes.forEach(barcode => {
+                barcodes.forEach(barcode => {
                     if (dataLookup.hasOwnProperty(`'${barcode}'`)) {
                         // If the item is in Alma...
                         const data = dataLookup[`'${barcode}'`]
@@ -136,10 +136,9 @@ export class ParseReportService {
                         })
                     }
                 })
-                this.loadComplete$.next(physicalItems)
-            },
-            header: true // If your CSV has headers
+                this.physicalItems$.next(physicalItems)
+            }
         })
-        return this.getParsedPhysicalItems()
+        return this.getLatestPhysicalItems()
     }
 }

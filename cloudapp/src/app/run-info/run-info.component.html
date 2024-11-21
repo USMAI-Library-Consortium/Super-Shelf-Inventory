@@ -6,13 +6,13 @@
       <p class="datapoint__name">Job ID:</p>
       <p class="datapoint__value">
         {{
-          this.runInfo.dataExtractUrl.replace("/conf/jobs/M48/instances/", "")
+          this.runInfo.jobId
         }}
       </p>
     </div>
     <div class="datapoint">
       <p class="datapoint__name">Run Date:</p>
-      <p class="datapoint__value">{{ this.runInfo.date | date }}</p>
+      <p class="datapoint__value">{{ this.runInfo.jobDate | date }}</p>
     </div>
     <div *ngIf="!minimized" class="datapoint">
       <p class="datapoint__name">File Name:</p>

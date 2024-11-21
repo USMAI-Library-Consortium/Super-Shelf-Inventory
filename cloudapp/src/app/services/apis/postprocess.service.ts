@@ -1,279 +1,103 @@
-import {Injectable, OnDestroy} from "@angular/core";
+import {Injectable} from '@angular/core';
+import {ProcessedPhysicalItem} from "../dataProcessing/report.service";
+import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
 import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
-import * as XLSX from "xlsx";
-import {combineLatest, forkJoin, from, Observable, of, ReplaySubject, Subject, timer} from "rxjs";
-import {StateService} from "./state.service";
-import {catchError, filter, map, switchMap, take, tap} from "rxjs/operators";
-import {ProcessedPhysicalItem} from "./report.service";
+import {catchError, filter, map, take, tap} from "rxjs/operators";
+import {AlmaSet} from "./set.service";
+import {AlmaJob} from "./export-job.service";
 
-export interface RunJobOutput {
-    barcodes: string[]
-    setId: string;
-    setName: string;
-    dataExtractUrl: string;
-    scanDate: number;
-    date: string;
-}
 
 interface ScanInResults {
-    wasRun: boolean
+    wasRun: boolean,
     successful: number,
     failed: number
 }
 
-interface MarkAsInventoriedResults {
-    wasRun: boolean
+interface ScanInJobProgress {
+    scanned: number,
+    total: number
 }
 
-interface PostprocessResults {
-    markAsInventoriedWasRun: boolean,
-    scanInWasRun: boolean,
-    itemsScannedIn: number,
-    itemsFailedScanIn: number
+interface MarkAsInventoriedJob extends AlmaJob {
+    markAsInventoriedField: string
 }
-
 
 @Injectable({
-    providedIn: "root",
+    providedIn: 'root'
 })
-export class AlmaJobService implements OnDestroy {
-    // Input barcode file
-    public excelFile: Blob;
 
-    // Data that this services parses and stores
-    public fileName: string;
-    public barcodes: string[] = null;
-    public fileLastModifiedDate: Date;
-    public scanDate: number = null;
+export class PostprocessService {
+    public scanInJobProgress$: Subject<ScanInJobProgress> = new Subject();
 
-    private setId: string = null;
-    private setName: string = null;
-    private dataExtractUrl: string = null;
+    private scanInDone$: BehaviorSubject<ScanInResults | null> = new BehaviorSubject(null);
+    private markAsInventoriedStarted$: BehaviorSubject<MarkAsInventoriedJob | null> = new BehaviorSubject(null);
 
-    // To aid with external logic.
-    public loadComplete$: ReplaySubject<RunJobOutput | null> = new ReplaySubject(1)
-    public userMessages$: Subject<string> = new Subject();
-
-    // Postprocessing internal variables
-    private markAsInventoriedComplete$: ReplaySubject<MarkAsInventoriedResults | null> = new ReplaySubject(1)
-    private scanInComplete$: ReplaySubject<ScanInResults | null> = new ReplaySubject()
-    private postprocessCompleteObservable$: Observable<PostprocessResults | null> = new Observable()
-
-    public postprocessComplete$: ReplaySubject<PostprocessResults | null> = new ReplaySubject(1)
-
-    constructor(
-        private restService: CloudAppRestService,
-        private alert: AlertService,
-        private stateService: StateService
-    ) {
-        // Save the run information once it's done.
-        this.loadComplete$.subscribe((runInfo) => {
-            if (runInfo && runInfo.setId) {
-                this.stateService
-                    .saveRun(this.fileName, runInfo.barcodes.length, runInfo.barcodes[0], runInfo.dataExtractUrl, runInfo.date)
-                    .subscribe(() => {
-                        console.log("Run Information Saved.")
-                        this.userMessages$.next("Run Information Saved.");
-                    }, () => {
-                        this.userMessages$.next("RUN INFO NOT SAVED.");
-                        this.alert.error("Run information could not be saved.")
-                    });
-            }
-        })
-
-        this.postprocessCompleteObservable$ = combineLatest([this.markAsInventoriedComplete$.pipe(filter(result => {
-            return !!result
-        })), this.scanInComplete$.pipe(filter(result => {
-            return !!result
-        }))]).pipe(map(results => {
-            return results[0] && results[1] ? {
-                markAsInventoriedWasRun: results[0].wasRun,
-                scanInWasRun: results[1].wasRun,
-                itemsScannedIn: results[1].successful,
-                itemsFailedScanIn: results[1].failed
-            } : null
-        }))
-        this.postprocessCompleteObservable$.subscribe(value => {
-            this.postprocessComplete$.next(value)
-        })
+    constructor(private restService: CloudAppRestService, private alert: AlertService) {
     }
 
-    ngOnDestroy(): void {
-        this.reset(false)
+    public getLatestScanInResults(): Observable<ScanInResults> {
+        return this.scanInDone$.pipe(filter(scanInResults => !!scanInResults), take(1))
     }
 
-    /**
-     * Returns the latest job result.
-     */
-    public getJobResults() {
-        return this.loadComplete$.pipe(filter(runJobOutput => runJobOutput !== null), take(1))
+    public getLatestMarkAsInventoriedStarted(): Observable<MarkAsInventoriedJob> {
+        return this.markAsInventoriedStarted$.pipe(filter(job => !!job), take(1))
     }
 
-    public resetPostProcess() {
-        this.scanInComplete$.next(null)
-        this.markAsInventoriedComplete$.next(null)
+    public reset() {
+        this.scanInDone$.next(null);
+        this.markAsInventoriedStarted$.next(null);
     }
 
-    public reset(markAsInventoriedStarted: boolean) {
-        console.log("Resetting AJS")
-        this.loadComplete$.next(null)
-        this.excelFile = null
-        this.fileName = null
-        this.fileLastModifiedDate = null
-        this.scanDate = null
-        this.barcodes = null
-        if (this.setId && !markAsInventoriedStarted) {
-            this.deleteSet().subscribe(result => {
-                console.log("Set Deleted")
-            }, error => {
-                this.alert.error("Failed to delete set. Set is likely in use by a job.")
-            })
-        }
-    }
-
-    private checkJobProgress(url: string) {
-        return timer(0, 3000).pipe(
-            switchMap(() =>
-                this.restService.call({
-                    url,
-                    headers: {
-                        Accept: "application/json",
-                    },
-                }).pipe(
-                    catchError((error) => {
-                        this.userMessages$.next(`Error: ${error.message}`);
-                        return of({progress: 0}); // Default progress on error
-                    })
-                )
-            ),
-            tap((result) => {
-                if (result["progress"] < 100) {
-                    this.userMessages$.next(`Job progress is ${result["progress"]}%`);
-                }
-            }),
-            filter((result) => result["progress"] === 100),
-            tap(() => this.userMessages$.next(`Job completed!`)),
-            take(1)
-        );
-    }
-
-    public loadData(input: any): void {
-        this.loadComplete$.next(null);
-        this.scanDate = new Date(input.scanDate).valueOf()
-        if (input.hasOwnProperty("date")) {
-            console.log("Using Previous Run.")
-            // This run has been completed previously
-            const runInfo: RunJobOutput = {
-                barcodes: this.barcodes,
-                date: input.date,
-                scanDate: this.scanDate,
-                dataExtractUrl: input.dataExtractUrl,
-                setId: "",
-                setName: "",
-            }
-            this.loadComplete$.next(runInfo);
-        } else {
-            console.log("Starting new run.")
-            this.createSet().subscribe(successful => {
-                this.userMessages$.next("Running Job...")
-
-                if (successful) {
-                    this.runJobOnSet()
-                } else {
-                    this.userMessages$.next('Set Creation Failed. Please close and reopen app.')
-                }
-            });
-        }
-    }
-
-    public postprocess(inventoryField: string | null, scanInItems: boolean, physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string) {
-        if (inventoryField) {
-            if (!this.setId) {
-                this.createSet().subscribe(successful => {
-                    if (successful) {
-                        this.markAsInventoried(inventoryField).subscribe(result => {
-                            this.markAsInventoriedComplete$.next({
-                                wasRun: true,
-                            })
-                        })
-                    } else {
-                        this.userMessages$.next("Set creation failure. Please try again.")
-                    }
-                })
-            } else {
-                this.markAsInventoried(inventoryField).subscribe(result => {
-                    this.markAsInventoriedComplete$.next({
-                        wasRun: true,
-                    })
-                })
-            }
-        } else this.markAsInventoriedComplete$.next({
-            wasRun: false
-        })
-
-        if (scanInItems) {
-            this.scanInItems(physicalItems, library, circDesk).subscribe(result => {
-                console.log("Scan In Items Observable Complete.")
-                this.scanInComplete$.next(result)
-            })
-        } else this.scanInComplete$.next({
-            wasRun: false,
-            successful: 0,
-            failed: 0
-        })
-    }
-
-    private scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string): Observable<ScanInResults> {
-        console.log("Running scanInItems function...")
+    public scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string): Observable<ScanInResults> {
         const requests: Observable<boolean>[] = []
-        for (let item of physicalItems) {
-            if (item.needsToBeScannedIn) {
-                requests.push(this.restService.call({
-                    url: `/almaws/v1/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}?op=scan&external_id=false&library=${library}&circ_desk=${circDesk}&done=true&auto_print_slip=false&place_on_hold_shelf=false&confirm=false&register_in_house_use=false`,
-                    method: HttpMethod.POST
-                }).pipe(catchError(err => {
-                    console.log(err)
-                    return of(false)
-                }), map(value => {
-                    if (value) {
-                        this.userMessages$.next(`Scanned in item ${item.barcode} successfully`)
-                        item.wasScannedIn = true
-                    } else {
-                        this.userMessages$.next(`FAILED scanning in item ${item.barcode}`)
-                        this.alert.error(`Failed scanning in item ${item.barcode}`)
-                    }
-
-                    return !!value;
-                })))
-            }
+        let numScanned: number = 0
+        for (let item of physicalItems.filter(item => {
+            return item.needsToBeScannedIn
+        })) {
+            requests.push(this.restService.call({
+                url: `/almaws/v1/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}?op=scan&external_id=false&library=${library}&circ_desk=${circDesk}&done=true&auto_print_slip=false&place_on_hold_shelf=false&confirm=false&register_in_house_use=false`,
+                method: HttpMethod.POST
+            }).pipe(catchError(err => {
+                console.log(err)
+                return of(false)
+            }), map(value => {
+                if (value) {
+                    item.wasScannedIn = true
+                } else {
+                    this.alert.error(`Failed scanning in item ${item.barcode}`)
+                }
+                return !!value;
+            }), tap(_ => {
+                numScanned += 1
+                this.scanInJobProgress$.next({
+                    total: requests.length,
+                    scanned: numScanned
+                })
+            })))
         }
 
-        console.log(`Found ${requests.length} items.`)
+        if (!requests) return of({
+            successful: 0,
+            failed: 0,
+            wasRun: true
+        })
 
-        if (requests.length === 0) {
-            return of({
-                successful: 0,
-                failed: 0,
-                wasRun: true
-            })
-        }
 
-        if (requests) return forkJoin(requests).pipe(map(results => {
-            let successful = 0
-            let failed = 0
-            for (let wasSuccessful of results) {
-                wasSuccessful ? successful += 1 : failed += 1
-            }
+        return forkJoin(requests).pipe(map(results => {
+            const successful = results.filter(Boolean).length
+            const failed = results.length - successful
             return {
                 successful,
                 failed,
                 wasRun: true
             }
+        }), tap(result => {
+            this.scanInDone$.next(result)
         }))
     }
 
-    private markAsInventoried(inventoryField: string): Observable<void> {
-        const formattedScanDate: string = `Last Inventoried on ${(new Date(this.scanDate)).toISOString().slice(0, 10)}`
+    public markAsInventoried(inventoryField: string, scanDate: string, set: AlmaSet): Observable<MarkAsInventoriedJob> {
+        const formattedScanDate: string = `Last Inventoried on ${(new Date(scanDate)).toISOString().slice(0, 10)}`
         return this.restService.call({
             url: "/conf/jobs/M18?op=run",
             method: HttpMethod.POST,
@@ -281,7 +105,23 @@ export class AlmaJobService implements OnDestroy {
                 "Content-Type": "application/xml",
                 Accept: "application/json",
             },
-            requestBody: `<job>
+            requestBody: this.getRequestBody(inventoryField, formattedScanDate, scanDate, set),
+        }).pipe(map(result => {
+            return {
+                jobId: (result["additional_info"]["link"] as string).replace(
+                    "/almaws/v1/conf/jobs/M18/instances/",
+                    ""),
+                dataExtractUrl: (result["additional_info"]["link"] as string).replace("/almaws/v1", ""),
+                jobDate: new Date().getTime().toString(),
+                markAsInventoriedField: inventoryField
+            }
+        }), tap(result => {
+            this.markAsInventoriedStarted$.next(result)
+        }))
+    }
+
+    private getRequestBody(inventoryField: string, formattedScanDate: string, scanDate: string, set: AlmaSet) {
+        return `<job>
                             <parameters>
                                 <parameter>
                                     <name>IS_MAGNETIC_condition</name>
@@ -593,7 +433,7 @@ export class AlmaJobService implements OnDestroy {
                                 </parameter>
                                 <parameter>
                                     <name>INVENTORY_DATE_value</name>
-                                    <value>${inventoryField === "inventory_date" ? this.scanDate : 0}</value>
+                                    <value>${inventoryField === "inventory_date" ? scanDate : 0}</value>
                                 </parameter>
                                 <parameter>
                                     <name>PUBLIC_NOTE_selected</name>
@@ -961,229 +801,15 @@ export class AlmaJobService implements OnDestroy {
                                 </parameter>
                                 <parameter>
                                     <name>set_id</name>
-                                    <value>${this.setId}</value>
+                                    <value>${set.id}</value>
                                 </parameter>
                                 <parameter>
                                     <name>job_name</name>
-                                    <value>Change Physical items information - ${this.setName}</value>
+                                    <value>Change Physical items information - ${set.name}</value>
                                 </parameter>
                             </parameters>
                         </job>
 
-            `,
-        }).pipe(tap(result => {
-            this.userMessages$.next(
-                `Job with ID ${(result["additional_info"]["link"] as string).replace(
-                    "/almaws/v1/conf/jobs/M18/instances/",
-                    ""
-                )} started.`
-            );
-        }))
-    }
-
-    private runJobOnSet() {
-        this.restService
-            .call({
-                url: "/conf/jobs/M48?op=run",
-                method: HttpMethod.POST,
-                headers: {
-                    "Content-Type": "application/xml",
-                    Accept: "application/json",
-                },
-                requestBody: `<job>
-        <parameters>
-          <parameter>
-            <name>task_ExportParams_outputFormat_string</name>
-            <value>CSV</value>
-          </parameter>
-          <parameter>
-            <name>task_ExportParams_exportFolder_string</name>
-            <value>PRIVATE</value>
-          </parameter>
-          <parameter>
-            <name>task_ExportParams_ftpConfig_string</name>
-            <value></value>
-          </parameter>
-          <parameter>
-            <name>task_ExportParams_ftpSubdirectory_string</name>
-            <value></value>
-          </parameter>
-          <parameter>
-            <name>set_id</name>
-            <value>${this.setId}</value>
-          </parameter>
-          <parameter>
-            <name>job_name</name>
-            <value>${this.setName}</value>
-          </parameter>
-        </parameters>
-      </job>
-      `,
-            })
-            .subscribe((result) => {
-                console.log(result);
-                this.userMessages$.next(
-                    `Job with ID ${(result["additional_info"]["link"] as string).replace(
-                        "/almaws/v1/conf/jobs/M48/instances/",
-                        ""
-                    )} started.`
-                );
-
-                this.dataExtractUrl = (result["additional_info"]["link"] as string).replace("/almaws/v1", "")
-                this.checkJobProgress(this.dataExtractUrl).subscribe(result => {
-                    this.loadComplete$.next({
-                        setId: this.setId,
-                        setName: this.setName,
-                        dataExtractUrl: this.dataExtractUrl,
-                        barcodes: this.barcodes,
-                        scanDate: this.scanDate,
-                        date: this.stateService.stringifyDate(new Date()),
-                    });
-                })
-            });
-    }
-
-    private createSet() {
-        this.userMessages$.next("Creating Set...")
-        const currentDate = new Date();
-        const timestamp = `${
-            currentDate.getMonth() + 1
-        }-${currentDate.getDate()}-${currentDate.getFullYear()} ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
-        const setName = `inventory_app ${timestamp}`;
-
-        const newSet = {
-            link: "",
-            name: setName,
-            description: "Set of physical items.",
-            content: {
-                value: "ITEM",
-            },
-            type: {
-                value: "ITEMIZED",
-            },
-            private: {
-                value: "true",
-            },
-        };
-
-        const maxChunkSize = 200;
-        const barcodeChunks: string[][] = [];
-
-        this.barcodes.forEach((barcode, i) => {
-            if (i % maxChunkSize === 0) {
-                barcodeChunks.push([]);
-            }
-            barcodeChunks[barcodeChunks.length - 1].push(barcode);
-        });
-
-        const addSetMemberBodies = barcodeChunks.map(barcodeChunk => {
-            return {
-                members: {
-                    total_record_count: barcodeChunk.length,
-                    member: barcodeChunk.map((barcode) => {
-                        return {
-                            link: "",
-                            id: barcode,
-                        };
-                    }),
-                },
-            };
-        })
-
-        return this.restService
-            .call({
-                url: "/conf/sets",
-                method: HttpMethod.POST,
-                requestBody: newSet,
-            }).pipe(tap(result => {
-                this.setId = result["id"];
-                this.setName = setName;
-            }), switchMap(result => {
-                const addMemberToSetJobs = addSetMemberBodies.map(body => {
-                    return this.restService.call({
-                        url: `/conf/sets/${result["id"]}?op=add_members&fail_on_invalid_id=false&id_type=BARCODE`,
-                        method: HttpMethod.POST,
-                        requestBody: body,
-                    }).pipe(catchError(result => {
-                        console.log(result.error)
-                        return of(false)
-                    }), map(result => {
-                        if (result) {
-                            this.userMessages$.next(`Added ${body.members.total_record_count} members to the set`);
-                            console.log(
-                                `Added ${body.members.total_record_count} members to the set`
-                            );
-                            return true
-                        } else {
-                            this.userMessages$.next("Failure adding members to set")
-                            return false
-                        }
-                    }))
-                })
-
-                return forkJoin(addMemberToSetJobs).pipe(map(results => {
-                    let successful = true
-                    results.forEach(result => {
-                        if (!result) successful = false
-                    })
-                    return successful
-                }))
-            }))
-    }
-
-    private deleteSet() {
-        return this.restService
-            .call({
-                url: `/conf/sets/${this.setId}`,
-                method: HttpMethod.DELETE,
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-    }
-
-    public parseExcelFile() {
-        this.loadComplete$.next(null)
-
-        return from(
-            this.excelFile.arrayBuffer().then(
-                (data) => {
-                    const items: string[] = [];
-                    const workbook = XLSX.read(data, {
-                        type: "binary",
-                    });
-
-                    const firstSheetName = workbook.SheetNames[0];
-                    const rows: any[] = XLSX.utils.sheet_to_json(
-                        workbook.Sheets[firstSheetName]
-                    );
-                    rows.forEach((row) => {
-                        let barcode: string = null;
-                        if ("barcode" in row) {
-                            barcode = row["barcode"];
-                        } else if ("Barcode" in row) {
-                            barcode = row["Barcode"];
-                        } else if ("BARCODE" in row) {
-                            barcode = row["BARCODE"];
-                        } else {
-                            this.alert.error(`No barcode column in file; found columns ${Object.keys(row).join(", ")}`);
-                            throw Error("Invalid Document.");
-                        }
-
-                        if (barcode) {
-                            items.push(barcode);
-                        }
-                    });
-
-                    this.userMessages$.next("Parsed Excel File successfully...");
-                    console.log(`${items.length} items parsed from excel file.`);
-                    this.barcodes = items;
-                    return this.barcodes;
-                },
-                (reason) => {
-                    this.alert.error("Error in parsing excel file. Ensure it is valid.");
-                }
-            )
-        );
+            `;
     }
 }

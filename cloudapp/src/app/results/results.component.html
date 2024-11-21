@@ -1,10 +1,5 @@
 <div class="eca-actions">
-    <button
-            mat-flat-button
-            color="secondary"
-            disabled="false"
-            (click)="onBack()"
-    >
+    <button mat-flat-button color="secondary" disabled="false" (click)="onBack()">
         Back
     </button>
     <button mat-flat-button color="primary" (click)="onSubmit()">Done</button>
@@ -30,10 +25,15 @@
         <p>Item Type Issues: {{ reportData.typeProblemCount }}</p>
     </span>
     <br>
-    <h2>Post Processing Results</h2>
-    <span *ngIf="ajs.postprocessComplete$ | async as postprocessResults">
-            <p>Items Scanned In: {{ postprocessResults.itemsScannedIn }} {{ postprocessResults.scanInWasRun ? '' : '(not run)' }}</p>
-            <p>Items Failed Scanned In: {{ postprocessResults.itemsFailedScanIn }} {{ postprocessResults.scanInWasRun ? '' : '(not run)' }}</p>
-            <p>Marked As Inventoried: {{ postprocessResults.markAsInventoriedWasRun ? 'started successfully - in ' + reportData.markAsInventoriedField : 'no' + (reportData.markAsInventoriedField ? '' : ' (not run)') }}</p>
-    </span>
+    <div *ngIf="((postprocessService.getLatestScanInResults() | async) || (postprocessService.getLatestMarkAsInventoriedStarted() | async))">
+        <h2>Post Processing Results</h2>
+        <div *ngIf="(postprocessService.getLatestScanInResults() | async) as scanInResults">
+            <p>Items Scanned
+                In: {{ scanInResults.successful }} {{ scanInResults.wasRun ? '' : '(not run)' }}</p>
+            <p>Items Failed Scanned
+                In: {{ scanInResults.failed }} {{ scanInResults.wasRun ? '' : '(not run)' }}</p>
+        </div>
+        <p *ngIf="postprocessService.getLatestMarkAsInventoriedStarted() | async as postprocessResults">Marked As
+            Inventoried: {{ 'started successfully - in ' + postprocessResults.markAsInventoriedField }}</p>
+    </div>
 </div>

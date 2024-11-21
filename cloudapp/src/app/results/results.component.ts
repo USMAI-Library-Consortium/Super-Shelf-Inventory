@@ -1,10 +1,9 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {AlmaJobService} from "../alma-job.service";
-import {ReportService} from "../report.service";
+import {ReportService} from "../services/dataProcessing/report.service";
 import {Subscription} from "rxjs";
-import {ParseReportService} from "../parse-report.service";
+import {ParseReportService} from "../services/fileParsing/parse-report.service";
 import {Router} from "@angular/router";
-import {filter} from "rxjs/operators";
+import {PostprocessService} from "../services/apis/postprocess.service";
 
 @Component({
     selector: 'app-results',
@@ -15,7 +14,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
     reportDataSubscription: Subscription;
 
-    constructor(public reportService: ReportService, private prs: ParseReportService, public ajs: AlmaJobService, private router: Router) {
+    constructor(public reportService: ReportService, public postprocessService: PostprocessService, private prs: ParseReportService, private router: Router) {
     }
 
     ngOnInit(): void {}
@@ -28,14 +27,14 @@ export class ResultsComponent implements OnInit, OnDestroy {
         this.reportService.getLatestReport().subscribe(data => {
             this.reportService.reset()
             this.prs.reset()
-            this.ajs.reset(!!data.markAsInventoriedField)
+            this.postprocessService.reset()
             this.router.navigate(['/'])
         })
     }
 
     onBack() {
         this.reportService.reset()
-        this.ajs.resetPostProcess()
+        this.postprocessService.reset()
         this.router.navigate(['/', "configure-report"])
     }
 

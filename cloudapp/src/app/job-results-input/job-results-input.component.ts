@@ -1,12 +1,10 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import {BehaviorSubject, Subscription} from "rxjs";
-import {
-  AlmaJobService,
-  RunJobOutput,
-} from "../alma-job.service";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
-import { ParseReportService } from "../parse-report.service";
+import { ParseReportService } from "../services/fileParsing/parse-report.service";
 import { Router } from "@angular/router";
+import {ExportJobService} from "../services/apis/export-job.service";
+import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 
 @Component({
   selector: "app-job-results-input",
@@ -14,15 +12,16 @@ import { Router } from "@angular/router";
   styleUrls: ["./job-results-input.component.scss"],
 })
 export class JobResultsInputComponent implements OnInit, OnDestroy {
-  reportForm: FormGroup;
-  jobResultsSubscription: Subscription;
-  parseReportSubscription: Subscription;
+  public reportForm: FormGroup;
+  public ready$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
-  ready$: BehaviorSubject<boolean> = new BehaviorSubject(false);
+  private jobResultsSubscription: Subscription;
+  private parseReportSubscription: Subscription;
 
   constructor(
-      public ajs: AlmaJobService,
       public prs: ParseReportService,
+      public ejs: ExportJobService,
+      private bps: BarcodeParserService,
       private fb: FormBuilder,
       private router: Router
   ) {}
@@ -39,7 +38,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
   }
 
   onBack(): void {
-    this.ajs.reset(false)
     this.router.navigate(["/"])
   }
 
@@ -50,8 +48,8 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
   onFileSelect(event: Event) {
     this.ready$.next(false)
     const input = event.target as HTMLInputElement;
-    this.jobResultsSubscription = this.ajs.getJobResults().subscribe(result => {
-      this.parseReportSubscription = this.prs.parseReport(input.files[0], result).subscribe(result => {
+    this.jobResultsSubscription = this.bps.getLatestBarcodes().subscribe(barcodes => {
+      this.parseReportSubscription = this.prs.parseReport(input.files[0], barcodes).subscribe(result => {
         this.ready$.next(true);
       });
     })

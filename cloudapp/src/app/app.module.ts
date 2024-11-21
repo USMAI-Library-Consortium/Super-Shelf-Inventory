@@ -11,12 +11,10 @@ import { AppRoutingModule } from './app-routing.module';
 import { MainComponent } from './main/main.component';
 import { ReportForm } from './report-form/report-form.component';
 import { BarcodeInputComponent } from './barcode-input/barcode-input.component';
-import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
 import { JobResultsInputComponent } from './job-results-input/job-results-input.component';
 import { RunInfoComponent } from './run-info/run-info.component';
 import { ResultsComponent } from './results/results.component';
 import { AdministrationComponent } from './administration/administration.component';
-import { ReportLoadingComponent } from './report-loading/report-loading.component';
 
 @NgModule({
   declarations: [
@@ -24,12 +22,10 @@ import { ReportLoadingComponent } from './report-loading/report-loading.componen
     MainComponent,
     ReportForm,
     BarcodeInputComponent,
-    LoadingScreenComponent,
     JobResultsInputComponent,
     RunInfoComponent,
     ResultsComponent,
     AdministrationComponent,
-    ReportLoadingComponent
   ],
   imports: [
     MaterialModule,

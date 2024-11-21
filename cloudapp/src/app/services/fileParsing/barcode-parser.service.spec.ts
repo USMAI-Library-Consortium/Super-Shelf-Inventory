@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { AlmaJobService } from './alma-job.service';
+import { BarcodeParserService } from './barcode-parser.service';
 
-describe('AlmaJobService', () => {
-  let service: AlmaJobService;
+describe('BarcodeParserService', () => {
+  let service: BarcodeParserService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(AlmaJobService);
+    service = TestBed.inject(BarcodeParserService);
   });
 
   it('should be created', () => {

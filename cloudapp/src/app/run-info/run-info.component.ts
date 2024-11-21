@@ -1,6 +1,6 @@
 import {Component, Input} from '@angular/core';
-import {RunJobOutput} from '../alma-job.service';
-import {PreviousRun} from '../state.service';
+import {PreviousRun} from '../services/apis/state.service';
+import {AlmaJob} from "../services/apis/export-job.service";
 
 @Component({
     selector: 'app-run-info',
@@ -9,7 +9,7 @@ import {PreviousRun} from '../state.service';
 })
 export class RunInfoComponent {
 
-    @Input() runInfo: RunJobOutput | PreviousRun
+    @Input() runInfo: AlmaJob | PreviousRun
     @Input() prefix: string = null
     @Input() minimized: boolean = false
 

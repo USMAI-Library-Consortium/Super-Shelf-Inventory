@@ -1,11 +1,14 @@
-import {Subscription} from "rxjs";
+import {Subscription, combineLatest, BehaviorSubject, Observable, of} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {CloudAppConfigService, CloudAppRestService,} from "@exlibris/exl-cloudapp-angular-lib";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {ParseReportService} from "../parse-report.service";
-import {ReportService} from "../report.service";
+import {ParseReportService} from "../services/fileParsing/parse-report.service";
+import {ReportService} from "../services/dataProcessing/report.service";
 import {Router} from "@angular/router";
-import {AlmaJobService} from "../alma-job.service";
+import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
+import {map, switchMap} from "rxjs/operators";
+import {PostprocessService} from "../services/apis/postprocess.service";
+import {SetService} from "../services/apis/set.service";
 
 interface Library {
     name: string;
@@ -40,13 +43,15 @@ interface PolicyType {
     styleUrls: ["./report-form.component.scss"],
 })
 export class ReportForm implements OnInit, OnDestroy {
-    inventoryForm: FormGroup;
+    public inventoryForm: FormGroup;
 
-    institutionLibraries: Library[] = [];
-    scanLocations: ScanLocation[] = [];
-    itemTypes: ItemType[] = [];
-    policyTypes: PolicyType[] = [];
-    circDesks: CircDesk[] = [];
+    public institutionLibraries: Library[] = [];
+    public scanLocations: ScanLocation[] = [];
+    public itemTypes: ItemType[] = [];
+    public policyTypes: PolicyType[] = [];
+    public circDesks: CircDesk[] = [];
+
+    public reportLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
     private filteredScanLocations: ScanLocation[] = [];
 
@@ -56,8 +61,9 @@ export class ReportForm implements OnInit, OnDestroy {
     private postprocessSubscription: Subscription
     private locationSubscription: Subscription;
     private circDeskSubscription: Subscription;
-    private markAsInventoriedField: string | null = null;
+    private reportLoadingSubscription: Subscription;
 
+    private markAsInventoriedField: string | null = null;
     private libraryDict: { [key: string]: number } = {};
     private locationDict: { [key: string]: number } = {};
     private itemTypeDict: { [key: string]: number } = {};
@@ -66,11 +72,13 @@ export class ReportForm implements OnInit, OnDestroy {
     constructor(
         private restService: CloudAppRestService,
         private fb: FormBuilder,
+        private bps: BarcodeParserService,
         private prs: ParseReportService,
         private reportService: ReportService,
+        public setService: SetService,
+        public postProcessService: PostprocessService,
         private router: Router,
         private configurationService: CloudAppConfigService,
-        private ajs: AlmaJobService, // Only imported to get the scan date.
     ) {
     }
 
@@ -111,7 +119,7 @@ export class ReportForm implements OnInit, OnDestroy {
             if (!values) {
                 console.log("Postprocess Not Configured")
             } else {
-                if (values["inventoryField"] !== 'None') {
+                if (values["inventoryField"] !== 'None' && values["inventoryField"] !== "undefined") {
                     this.inventoryForm.get("markAsInventoried").enable()
                     this.markAsInventoriedField = values["inventoryField"];
                     console.log(`Marking Inventory Enabled - stored in ${values["inventoryField"]}`)
@@ -151,7 +159,7 @@ export class ReportForm implements OnInit, OnDestroy {
                 // })
             });
 
-        this.physicalItemsSubscription = this.prs.getParsedPhysicalItems().subscribe(physicalItems => {
+        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(physicalItems => {
             physicalItems.forEach((physicalItem) => {
                 if (physicalItem.library) {
                     if (this.libraryDict.hasOwnProperty(physicalItem.library)) {
@@ -217,11 +225,10 @@ export class ReportForm implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.libraryCodeSubscription.unsubscribe();
-        if (this.reportCompleteSubscription) {
-            this.reportCompleteSubscription.unsubscribe()
-        }
+        if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
         if (this.circDeskSubscription) this.circDeskSubscription.unsubscribe()
         if (this.locationSubscription) this.locationSubscription.unsubscribe()
+        if (this.reportLoadingSubscription) this.reportLoadingSubscription.unsubscribe()
         this.physicalItemsSubscription.unsubscribe()
         this.postprocessSubscription.unsubscribe()
     }
@@ -233,6 +240,7 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     public onSubmit() {
+        this.reportLoading$.next(true)
         if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
         const callNumberType = this.inventoryForm.get("callNumberType").value
         const library = this.inventoryForm.get("library").value
@@ -244,10 +252,38 @@ export class ReportForm implements OnInit, OnDestroy {
         const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
         const sortBy = this.inventoryForm.get("sortBy").value
         const sortSerialsByDescription = this.inventoryForm.get("sortSerialsByDescription").value
-        const markAsInventoried = this.inventoryForm.get("markAsInventoried").value ? this.markAsInventoriedField : null
+        const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
-        this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, markAsInventoried, scanInItems, circDesk, this.ajs.scanDate)
-        this.router.navigate(["/", 'report-loading'])
+
+        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.prs.getLatestPhysicalItems()]).pipe(map(values => {
+            return {
+                scanDate: values[0],
+                physicalItems: values[1],
+            }
+        })).pipe(switchMap(data => {
+            return this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, data.scanDate, data.physicalItems).pipe(map(reportData => {
+                console.log(" Done generating report ")
+                return {
+                    ...reportData,
+                    scanDate: data.scanDate,
+                }
+            }))
+        }), switchMap(reportData => {
+            const postProcessJobs: Observable<any>[] = []
+            console.log(markAsInventoried, scanInItems)
+            if (markAsInventoried) {
+                const barcodes: string[] = reportData.unsortedItems.map(item => item.barcode)
+                const markAsInventoriedProcess = this.setService.getLatestSetInfoOrCreateSet(barcodes).pipe(switchMap(setInfo => {
+                    return this.postProcessService.markAsInventoried(markAsInventoried, reportData.scanDate, setInfo)
+                }))
+                postProcessJobs.push(markAsInventoriedProcess)
+            }
+            if (scanInItems) postProcessJobs.push(this.postProcessService.scanInItems(reportData.unsortedItems, library, circDesk))
+
+            return postProcessJobs.length > 0 ? combineLatest(postProcessJobs) : of([])
+        })).subscribe(_ => {
+            this.router.navigate(['results'])
+        })
     }
 
     public onSelectNewLibrary(libraryCode: string) {

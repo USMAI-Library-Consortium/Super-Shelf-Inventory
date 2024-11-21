@@ -15,8 +15,8 @@
         Next
     </button>
 </div>
-<div>
-    <app-run-info *ngIf="this.ajs.loadComplete$ | async as jobOutput" [minimized]="true" [runInfo]="jobOutput"></app-run-info>
+<div *ngIf="this.ejs.getLatestRunInfo() | async as jobOutput">
+    <app-run-info  [minimized]="true" [runInfo]="jobOutput"></app-run-info>
     <p style=" margin-top: .5rem;">Please download the following report from Alma and then upload it here.</p>
     <p>Please pin this Cloud App or switch to a different Alma window before downloading this report, otherwise the app will quit (Your data load will be saved, however).</p>
     <p>To access this report, navigate to: <span style="font-weight: 500;">Admin &gt; Monitor Jobs &gt; History &gt; (Select Job with above ID) &gt; Link to Exported Records &gt; ... &gt; Download</span></p>
