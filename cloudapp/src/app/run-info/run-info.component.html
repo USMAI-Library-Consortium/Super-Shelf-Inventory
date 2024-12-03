@@ -16,15 +16,15 @@
     </div>
     <div *ngIf="!minimized" class="datapoint">
       <p class="datapoint__name">File Name:</p>
-      <p class="datapoint__value">{{ this.runInfo.inputFileName }}</p>
+      <p class="datapoint__value">{{ $any(this.runInfo).inputFileName }}</p>
     </div>
     <div *ngIf="!minimized" class="datapoint">
       <p class="datapoint__name">Number of Barcodes:</p>
-      <p class="datapoint__value">{{ this.runInfo.numberOfRecords }}</p>
+      <p class="datapoint__value">{{ $any(this.runInfo).numberOfRecords }}</p>
     </div>
     <div *ngIf="!minimized" class="datapoint">
       <p class="datapoint__name">First Barcode:</p>
-      <p class="datapoint__value">{{ this.runInfo.firstBarcode }}</p>
+      <p class="datapoint__value">{{ $any(this.runInfo).firstBarcode }}</p>
     </div>
   </div>
 </div>

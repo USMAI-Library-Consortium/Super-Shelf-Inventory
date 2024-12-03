@@ -22,7 +22,7 @@ interface DataExportJobProgress {
 })
 export class ExportJobService {
     public dataExportJobProgress$: Subject<DataExportJobProgress> = new Subject();
-    public job$: BehaviorSubject<AlmaJob | null> = new BehaviorSubject(null);
+    private job$: BehaviorSubject<AlmaJob | null> = new BehaviorSubject(null);
 
     constructor(private restService: CloudAppRestService) {
     }
