@@ -116,11 +116,6 @@ export class ReportService {
             if (callNumberType == "Dewey") item.callSort = this.callNumberService.normalizeDewey(item.callNumber);
             else item.callSort = this.callNumberService.normalizeLC(item.callNumber)
 
-            if (item.lastModifiedDate < scanDate && item.status === "Item not in place") {
-                item.needsToBeScannedIn = true
-                console.log(`Item ${item.barcode} needs to be scanned in `)
-            }
-
             item.actualLocation = i + 1
 
             // Determine whether the item is sortable
@@ -153,6 +148,12 @@ export class ReportService {
             if (orderProblemLimit !== "onlyOrder") {
                 this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, expectedItemTypes);
             } // Finished calculating non-order-related issues
+
+            // Make sure to not scan in items that are in the wrong library / location
+            if (item.lastModifiedDate < scanDate && item.status === "Item not in place" && !item.hasLibraryProblem && !item.hasLocationProblem) {
+                item.needsToBeScannedIn = true
+                console.log(`Item ${item.barcode} needs to be scanned in `)
+            }
 
             item.correctLocation = index + 1
         })
