@@ -1,23 +1,23 @@
 {
-  "id": "super-shelf-inventory",
-  "title": "Super Shelf Inventory (Alpha)",
-  "subtitle": "Shelf Inventory tool w/ post-processing capabilities.",
-  "author": "Erik Jones (USMAI)",
-  "description": "FOR TESTING AND VERIFICATION PURPOSES ONLY. Currently supports LC Call Numbers only.",
-  "contentSecurity": {
-    "sandbox": {
-      "downloads": true
-    }
-  },
-  "relevantForInst": [
-    "01USMAI_UMCP",
-    "01USMAI_MSU",
-    "01USMAI_LNDL",
-    "01USMAI_SU",
-    "01UTN_KNOXVILLE",
-    "01PURDUE_PUWL",
-    "01UNLV",
-    "01SUNY_ALB",
-    "01DRXU_INST"
-  ]
+   "id": "super-shelf-inventory",
+   "title": "Super Shelf Inventory (Alpha)",
+   "subtitle": "Shelf Inventory tool w/ post-processing capabilities.",
+   "author": "Erik Jones (USMAI)",
+   "description": "FOR TESTING AND VERIFICATION PURPOSES ONLY. Currently supports LC Call Numbers only.",
+   "contentSecurity": {
+      "sandbox": {
+         "downloads": true
+      }
+   },
+   "relevantForInst": [
+      "01USMAI_UMCP",
+      "01USMAI_MSU",
+      "01USMAI_LNDL",
+      "01USMAI_SU",
+      "01UTN_KNOXVILLE",
+      "01PURDUE_PUWL",
+      "01UNLV",
+      "01SUNY_ALB",
+      "01DRXU_INST"
+   ]
 }
