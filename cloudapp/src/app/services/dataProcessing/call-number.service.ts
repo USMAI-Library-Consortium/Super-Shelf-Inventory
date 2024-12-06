@@ -41,16 +41,16 @@ export class CallNumberService {
       //     description = `${prefix ? prefix + " ": ""}${integerMarker1} ${paddedInteger1} ${secondVol ? integerMarker2 + " " + integer2.padStart(5, "0") + " " : ""}${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
       // }
 
-      description = description.replace(new RegExp(`(?<integerMarker>${marker})\\.?\\s*(?<integer>\\d+)`, "gi"), (match, integerMarker, integer) => {
+      normalizedDescription = normalizedDescription.replace(new RegExp(`(?<integerMarker>${marker})\\.?\\s*(?<integer>\\d+)`, "g"), (match, integerMarker, integer) => {
         return `${marker}${integer.padStart(5, "0")}`
       })
     });
 
-    description = description.replace("\\", "")
-    description = description.replace(/\s{2,}/, " ")
-    description = description.replace(/(\d)\s*-\s*(\d)/g, '$1-$2');
+    normalizedDescription = normalizedDescription.replace("\\", "")
+    normalizedDescription = normalizedDescription.replace(/\s{2,}/, " ")
+    normalizedDescription = normalizedDescription.replace(/(\d)\s*-\s*(\d)/g, '$1-$2');
 
-    return description;
+    return normalizedDescription;
   }
 
   public normalizeLC(originalLCNumber: string) {
