@@ -113,6 +113,23 @@ describe('CallNumberService', () => {
                 const result = service.normalizeLC("PS3572.A39D66 2004")
                 expect(result).toEqual("PS   03572.00000000000 A3900000 D6600000 2004", result)
             })
+            it('Parse call number no decimal', () => {
+                const result = service.normalizeLC("HF 1452 D54 1993")
+                expect(result).toEqual("HF   01452.00000000000 D5400000          1993", result)
+            })
+            it('Parse call number no decimal with letter after cutter number', () => {
+                const result = service.normalizeLC("HF 1416 P73X 2006")
+                expect(result).toEqual("HF   01416.00000000000 P73X0000          2006", result)
+            })
+            it('Parse call number with letter after cutter number', () => {
+                const result = service.normalizeLC("HF 1417.5 M85X 1989")
+                expect(result).toEqual("HF   01417.50000000000 M85X0000          1989", result)
+            })
+
+            it('Parse call number with letter after cutter number with multiple cutters', () => {
+                const result = service.normalizeLC("HF 1456.5 E825 F42X 1996")
+                expect(result).toEqual("HF   01456.50000000000 E8250000 F42X0000 1996", result)
+            })
         })
     })
 });
