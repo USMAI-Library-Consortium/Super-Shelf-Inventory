@@ -65,7 +65,7 @@ export class CallNumberService {
 
     let {lcCallNumber, integerMarkers} = this.prepareCallNumber(originalLCNumber);
 
-    const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z]*)(?<cutter1Number>\d*))?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+))?\s*(?<theTrimmings>.*)$/;
+    const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.?\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z])(?<cutter1Number>\d+)(?<cutter1Suffix>[A-Z] )?)?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+)(?<cutter2Suffix>[A-Z] )?)?\s*(?<theTrimmings>.*)$/;
     const match = lcCallNumber.match(lcRegex);
     if (!match) return unparsable // return extreme answer if not a call number
 
@@ -78,9 +78,11 @@ export class CallNumberService {
       cutter1,
       cutter1Letter,
       cutter1Number,
+      cutter1Suffix,
       cutter2,
       cutter2Letter,
       cutter2Number,
+      cutter2Suffix,
       theTrimmings
     } = match.groups;
     // Set all values to empty string if they are undefined
@@ -96,6 +98,10 @@ export class CallNumberService {
     // decimal number - need to fix. these are not by original design
     // Cutter 1 letter need to fix, 170.5.f should be after 170.f
     // cutter 1 number .F175 before .F2 -> .175 vs .2
+
+    if (!decimalNumber.startsWith(".")) {
+      decimalNumber = "." + decimalNumber;
+    }
 
     if (!cutter2) {
       if (cutter2Letter) {
@@ -124,7 +130,11 @@ export class CallNumberService {
       theTrimmings = theTrimmings.replace("\\", "")
     }
 
-    return `${initialLetters.padEnd(4, " ")} ${classNumber.padStart(5, "0")}${decimalNumber.padEnd(12, "0")} ${cutter1 ? cutter1Letter + cutter1Number.padEnd(7, "0") : "        "} ${cutter2 ? cutter2Letter + cutter2Number.padEnd(7, "0") : "        "} ${theTrimmings}`
+    if (!cutter1Suffix) cutter1Suffix = ""
+    if (!cutter2Suffix) cutter2Suffix = ""
+    cutter1Suffix = cutter1Suffix.trimEnd()
+    cutter2Suffix = cutter2Suffix.trimEnd()
+    return `${initialLetters.padEnd(4, " ")} ${classNumber.padStart(5, "0")}${decimalNumber.padEnd(12, "0")} ${cutter1 ? cutter1Letter + (cutter1Number + cutter1Suffix).padEnd(7, "0") : "        "} ${cutter2 ? cutter2Letter + (cutter2Number + cutter2Suffix).padEnd(7, "0") : "        "} ${theTrimmings}`
   }
 
   private prepareCallNumber(originalLCNumber: string) {
