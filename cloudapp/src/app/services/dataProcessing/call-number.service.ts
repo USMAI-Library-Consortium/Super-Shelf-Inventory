@@ -65,7 +65,7 @@ export class CallNumberService {
 
     let {lcCallNumber, integerMarkers} = this.prepareCallNumber(originalLCNumber);
 
-    const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.?\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z])(?<cutter1Number>\d+)(?<cutter1Suffix>[A-Z] )?)?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+)(?<cutter2Suffix>[A-Z] )?)?\s*(?<theTrimmings>.*)$/;
+    const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.?\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z])(?<cutter1Number>\d+)(?<cutter1Suffix>[A-Z]{1,2} )?)?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+)(?<cutter2Suffix>[A-Z]{1,2} )?)?\s*(?<theTrimmings>.*)$/;
     const match = lcCallNumber.match(lcRegex);
     if (!match) return unparsable // return extreme answer if not a call number
 

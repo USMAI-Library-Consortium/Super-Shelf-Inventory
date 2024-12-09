@@ -121,15 +121,21 @@ describe('CallNumberService', () => {
                 const result = service.normalizeLC("HF 1416 P73X 2006")
                 expect(result).toEqual("HF   01416.00000000000 P73X0000          2006", result)
             })
-            it('Parse call number with letter after cutter number', () => {
+            it('Parse call number with cutter number suffix', () => {
                 const result = service.normalizeLC("HF 1417.5 M85X 1989")
                 expect(result).toEqual("HF   01417.50000000000 M85X0000          1989", result)
             })
 
-            it('Parse call number with letter after cutter number with multiple cutters', () => {
+            it('Parse call number with cutter number suffix and multiple cutters', () => {
                 const result = service.normalizeLC("HF 1456.5 E825 F42X 1996")
                 expect(result).toEqual("HF   01456.50000000000 E8250000 F42X0000 1996", result)
             })
+
+            it('Parse call number with cutter number suffix with two letters', () => {
+                const result = service.normalizeLC("HF 1417.5 M85XB 1989")
+                expect(result).toEqual("HF   01417.50000000000 M85XB000          1989", result)
+            })
+
         })
     })
 });
