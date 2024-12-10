@@ -3,7 +3,7 @@
    "title": "Super Shelf Inventory (Alpha)",
    "subtitle": "Shelf Inventory tool w/ post-processing capabilities.",
    "author": "Erik Jones (USMAI)",
-   "description": "FOR TESTING AND VERIFICATION PURPOSES ONLY. Currently supports LC Call Numbers only.",
+   "description": "FOR TESTING AND VERIFICATION PURPOSES ONLY. Cloud app to assist withgi shelf inventory process.",
    "contentSecurity": {
       "sandbox": {
          "downloads": true
