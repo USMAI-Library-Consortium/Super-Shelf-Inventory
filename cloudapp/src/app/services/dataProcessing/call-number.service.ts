@@ -15,7 +15,7 @@ export class CallNumberService {
     if (compareVal === 0 && sortSerialsByDescription) {
       a.normalizedDescription = this.normalizeDescription(a.description)
       b.normalizedDescription = this.normalizeDescription(b.description)
-      if (a.normalizedDescription && b.normalizedDescription) {
+      if (a.normalizedDescription || b.normalizedDescription) {
         // If call numbers are the same, and both have a description, sort by the description.
         compareVal = a.normalizedDescription.localeCompare(b.normalizedDescription)
       }
@@ -168,7 +168,7 @@ export class CallNumberService {
     if (compareVal === 0 && sortSerialsByDescription) {
       a.normalizedDescription = this.normalizeDescription(a.description)
       b.normalizedDescription = this.normalizeDescription(b.description)
-      if (a.normalizedDescription && b.normalizedDescription) {
+      if (a.normalizedDescription || b.normalizedDescription) {
         // If call numbers are the same, and both have a description, sort by the description.
         compareVal = a.normalizedDescription.localeCompare(b.normalizedDescription)
       }

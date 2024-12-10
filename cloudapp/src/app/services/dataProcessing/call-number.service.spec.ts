@@ -3,6 +3,9 @@ import {TestBed} from '@angular/core/testing';
 import {CallNumberService} from './call-number.service';
 import {ProcessedPhysicalItem} from "./report.service";
 
+const IN_CORRECT_ORDER = -1
+const NEEDS_TO_BE_SWITCHED = 1
+
 let getPhysicalItem = (callNum: string, description: string = null): ProcessedPhysicalItem => {
     return {
         barcode: "string",
@@ -65,7 +68,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("001.422 T593s 2021")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex2 correctly", () => {
@@ -73,7 +76,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("001.4226 E93 2018")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex3 correctly", () => {
@@ -81,7 +84,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("006.6 K39")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex4 correctly", () => {
@@ -89,7 +92,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.1 J72")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex5 correctly", () => {
@@ -97,7 +100,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.19434 S628")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex6 correctly", () => {
@@ -105,7 +108,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.82 H236")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex7 correctly", () => {
@@ -113,7 +116,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.9 M678h")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex8 correctly", () => {
@@ -121,7 +124,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.922 M689 v.2")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex9 correctly", () => {
@@ -129,7 +132,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("150.922 M689 v.2")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort ex10 correctly", () => {
@@ -137,7 +140,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("989.506 V253")
 
                 let result = service.sortDewey(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort with description", () => {
@@ -145,7 +148,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("980.03 A512", "v.3")
 
                 let result = service.sortDewey(a, b, true)
-                expect(result).toEqual(1)
+                expect(result).toEqual(NEEDS_TO_BE_SWITCHED)
             })
 
             it ("Should sort with description", () => {
@@ -153,7 +156,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("977.6 F671", "v.II")
 
                 let result = service.sortDewey(a, b, true)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort with description", () => {
@@ -161,7 +164,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("977 G786", "pt.2")
 
                 let result = service.sortDewey(a, b, true)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it ("Should sort with description just year", () => {
@@ -169,7 +172,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("973.924 N736w DVD", "2009")
 
                 let result = service.sortDewey(a, b, true)
-                expect(result).toEqual(0)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
         })
 
@@ -179,21 +182,21 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("PS3572.A39D66 2004")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
             it('Should sort Literature', () => {
                 const a = getPhysicalItem("PN3432.G6 1975")
                 const b = getPhysicalItem("PN3433.4.B73 2007")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
             it('Should sort Architecture', () => {
                 const a = getPhysicalItem("NA31.W45 1976")
                 const b = getPhysicalItem("NA105.F87")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it('Should sort Musicals', () => {
@@ -201,14 +204,14 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("M23.B4 op.57 1981")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
             it('Should Sort Journals', () => {
                 const a = getPhysicalItem("QA1.A647 v.3")
                 const b = getPhysicalItem("QA1.A647 v.27")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
             it('Should Sort Misc 1', () => {
@@ -216,7 +219,7 @@ describe('CallNumberService', () => {
                 const b = getPhysicalItem("QA76.73.C153Y48 2005")
 
                 let result = service.sortLC(a, b, false)
-                expect(result).toEqual(-1)
+                expect(result).toEqual(IN_CORRECT_ORDER)
             })
         })
 
