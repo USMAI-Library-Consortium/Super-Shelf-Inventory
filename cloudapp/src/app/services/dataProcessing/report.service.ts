@@ -134,8 +134,10 @@ export class ReportService {
         })
 
         // Create a sorted array.
-        const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "Dewey" ? this.callNumberService.sortDewey : (a, b) => {
+        const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "LC" ? (a, b) => {
             return this.callNumberService.sortLC(a, b, sortSerialsByDescription)
+        } : (a, b) => {
+            return this.callNumberService.sortDewey(a, b, sortSerialsByDescription)
         })
 
         sorted.forEach((item, index) => {
