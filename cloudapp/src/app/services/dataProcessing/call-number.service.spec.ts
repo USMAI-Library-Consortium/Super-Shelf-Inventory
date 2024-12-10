@@ -58,6 +58,89 @@ describe('CallNumberService', () => {
     });
 
     describe("Should sort Call Numbers correctly", () => {
+
+        describe("Should sort Dewey call numbers correctly", () => {
+            it ("Should sort ex1 correctly", () => {
+                const a = getPhysicalItem('001.422 T593 2021')
+                const b = getPhysicalItem("001.422 T593s 2021")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex2 correctly", () => {
+                const a = getPhysicalItem('001.422 T593s 2021')
+                const b = getPhysicalItem("001.4226 E93 2018")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex3 correctly", () => {
+                const a = getPhysicalItem('005.133 F583 2005')
+                const b = getPhysicalItem("006.6 K39")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex4 correctly", () => {
+                const a = getPhysicalItem('150.1 H112')
+                const b = getPhysicalItem("150.1 J72")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex5 correctly", () => {
+                const a = getPhysicalItem('150.1 W831 Yb')
+                const b = getPhysicalItem("150.19434 S628")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex6 correctly", () => {
+                const a = getPhysicalItem('150.195 E68Yc')
+                const b = getPhysicalItem("150.82 H236")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex7 correctly", () => {
+                const a = getPhysicalItem('150.9 H685 2002')
+                const b = getPhysicalItem("150.9 M678h")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex8 correctly", () => {
+                const a = getPhysicalItem('150.92 H741h')
+                const b = getPhysicalItem("150.922 M689 v.2")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex9 correctly", () => {
+                const a = getPhysicalItem('150.922 M689')
+                const b = getPhysicalItem("150.922 M689 v.2")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+
+            it ("Should sort ex10 correctly", () => {
+                const a = getPhysicalItem('989.506 P398a3')
+                const b = getPhysicalItem("989.506 V253")
+
+                let result = service.sortDewey(a, b)
+                expect(result).toEqual(-1)
+            })
+        })
+
         describe("Should sort LOC Call Numbers Correctly", () => {
             it('Should sort American Literature', () => {
                 const a = getPhysicalItem("PS3572.A387Z6 2004")
