@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import {PhysicalItem} from "../fileParsing/parse-report.service";
 import {ProcessedPhysicalItem} from "./report.service";
 
 @Injectable({
@@ -162,10 +161,19 @@ export class CallNumberService {
     return {lcCallNumber, integerMarkers};
   }
 
-  public sortDewey(right: PhysicalItem, left: PhysicalItem) {
-    const rightCN = this.normalizeDewey(right.callNumber);
-    const leftCN = this.normalizeDewey(left.callNumber);
-    return rightCN.localeCompare(leftCN);
+  public sortDewey(a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortSerialsByDescription: boolean) {
+    const aCN: string = a.callSort ? a.callSort : this.normalizeDewey(a.callNumber)
+    const bCN: string = b.callSort ? b.callSort : this.normalizeDewey(b.callNumber)
+    let compareVal = aCN.localeCompare(bCN)
+    if (compareVal === 0 && sortSerialsByDescription) {
+      a.normalizedDescription = this.normalizeDescription(a.description)
+      b.normalizedDescription = this.normalizeDescription(b.description)
+      if (a.normalizedDescription && b.normalizedDescription) {
+        // If call numbers are the same, and both have a description, sort by the description.
+        compareVal = a.normalizedDescription.localeCompare(b.normalizedDescription)
+      }
+    }
+    return compareVal
   }
 
   public normalizeDewey(callNum: string) {
