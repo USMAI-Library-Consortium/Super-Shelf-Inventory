@@ -48,6 +48,7 @@ export class ParseReportService {
         this.physicalItems$.next(null)
         Papa.parse(file, {
             header: true, // If your CSV has headers
+            transformHeader: (header) => header.trim(),
             complete: (results: any) => {
                 const dataLookup: {
                     [key: string]: {
@@ -70,17 +71,17 @@ export class ParseReportService {
                 } = {}
 
                 results.data.forEach(row => {
-                    dataLookup[row[" Barcode"]] = {
-                        title: row[" Title"],
-                        callNumber: row[" Call Number"],
+                    dataLookup[row["Barcode"]] = {
+                        title: row["Title"],
+                        callNumber: row["Call Number"],
                         description: row["Description"],
                         mmsId: row["MMS Record ID"],
                         holdingId: row["HOL Record ID"],
                         pid: row["Item PID"],
-                        library: row[" Local Location"],
-                        location: row[" Permanent Physical Location"],
-                        itemMaterialType: row[" Item Material Type"],
-                        policyType: row[" Policy"],
+                        library: row["Local Location"],
+                        location: row["Permanent Physical Location"],
+                        itemMaterialType: row["Item Material Type"],
+                        policyType: row["Policy"],
                         status: row["Status"],
                         processType: row["Process type"],
                         lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime().toString() : new Date(row["Creation date"]).getTime().toString(),
