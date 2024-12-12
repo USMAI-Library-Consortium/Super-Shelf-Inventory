@@ -5,6 +5,7 @@ import {Router} from "@angular/router";
 import {PostprocessService} from "../services/apis/postprocess.service";
 import {ParseReportService} from "../services/fileParsing/parse-report.service";
 import {ReportService} from "../services/dataProcessing/report.service";
+import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 
 @Component({
     selector: 'app-results',
@@ -18,6 +19,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     constructor(public reportService: ReportService,
                 public postprocessService: PostprocessService,
                 private prs: ParseReportService,
+                private iii: IndividualItemInfoService,
                 private router: Router) {
     }
 
@@ -30,6 +32,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     onSubmit() {
         this.reportService.getLatestReport().subscribe(data => {
             this.reportService.reset()
+            this.iii.reset()
             this.prs.reset()
             this.postprocessService.reset()
             this.router.navigate(['/'])
