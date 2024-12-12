@@ -10,6 +10,7 @@ import {PostprocessService} from "../services/apis/postprocess.service";
 import {ParseReportService} from "../services/fileParsing/parse-report.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
+import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 
 interface Library {
     name: string;
@@ -75,6 +76,7 @@ export class ReportForm implements OnInit, OnDestroy {
         private fb: FormBuilder,
         private bps: BarcodeParserService,
         private prs: ParseReportService,
+        private iii: IndividualItemInfoService,
         private reportService: ReportService,
         public setService: SetService,
         public postProcessService: PostprocessService,
@@ -160,7 +162,7 @@ export class ReportForm implements OnInit, OnDestroy {
                 // })
             });
 
-        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(physicalItems => {
+        this.physicalItemsSubscription = this.iii.getLatestPhysicalItemInfo().subscribe(physicalItems => {
             physicalItems.forEach((physicalItem) => {
                 if (physicalItem.library) {
                     if (this.libraryDict.hasOwnProperty(physicalItem.library)) {
@@ -236,6 +238,7 @@ export class ReportForm implements OnInit, OnDestroy {
 
     public onBack(): void {
         this.prs.reset()
+        this.iii.reset()
         this.reportService.reset()
         this.router.navigate(['/', 'job-results-input'])
     }
@@ -256,7 +259,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.prs.getLatestPhysicalItems()]).pipe(map(values => {
+        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.iii.getLatestPhysicalItemInfo()]).pipe(map(values => {
             return {
                 scanDate: values[0],
                 physicalItems: values[1],

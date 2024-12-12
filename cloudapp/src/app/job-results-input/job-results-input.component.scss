@@ -1,0 +1,8 @@
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+
+  & mat-progress-spinner {
+    margin: 0 auto;
+  }
+}

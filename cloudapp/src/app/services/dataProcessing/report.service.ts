@@ -246,29 +246,37 @@ export class ReportService {
             item.hasNotInPlaceProblem = `**Not In Place: ${item.processType}**`
         }
 
-        if (item.inTempLocation) {
-            item.hasProblem = true
-            item.hasTemporaryLocationProblem = "**IN TEMP LOC**"
-        }
-
         if (item.requested) {
             item.hasProblem = true
             item.hasRequestProblem = "**ITEM HAS REQUEST**"
         }
 
-        if (!locationCodes.includes(item.location)) {
+        const hasLocationProblem = !locationCodes.includes(item.location)
+        const hasLibraryProblem = item.library !== libraryCode
+        const hasPolicyTypeProblem = expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)
+        // First, deal with items that should be in a temp location but are not
+        if (item.inTempLocation) {
+            // Item SHOULD BE in temp location if Library or Location is wrong here.
+            if (hasLibraryProblem || hasLocationProblem) {
+                item.hasProblem = true
+                item.hasTemporaryLocationProblem = `**Item should be in temp location ${item.location} in library ${item.library}**`
+                return
+            }
+        }
+
+        if (hasLocationProblem) {
             item.hasProblem = true
             item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
             item.hasOrderProblem = null
         }
 
-        if (item.library !== libraryCode) {
+        if (hasLibraryProblem) {
             item.hasProblem = true
             item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
             item.hasOrderProblem = null
         }
 
-        if (expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)) {
+        if (hasPolicyTypeProblem) {
             if (item.policyType != "") {
                 item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`
             } else {
