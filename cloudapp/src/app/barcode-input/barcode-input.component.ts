@@ -3,7 +3,7 @@ import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription} from "rxjs";
 import {switchMap} from "rxjs/operators";
-import {AlertService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
+import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
@@ -22,14 +22,12 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         false
     );
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
-    public isAdmin$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public jobRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public previousRun: PreviousRun = null;
 
     private enableUseCachedResultsSubscription: Subscription;
     private loadingSubscription: Subscription;
     private loadDataSubscription: Subscription;
-    private isAdminSubscription: Subscription;
     private barcodeSubscription: Subscription;
     private findSimilarRunsSubscription: Subscription;
 
@@ -40,7 +38,6 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         private bps: BarcodeParserService,
         public setService: SetService,
         public ejs: ExportJobService,
-        private eventsService: CloudAppEventsService,
         private alert: AlertService,
     ) {
     }
@@ -65,9 +62,6 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 ? this.barcodeForm.get("barcodeXLSXFile").disable()
                 : this.barcodeForm.get("barcodeXLSXFile").enable();
         });
-        this.isAdminSubscription = this.eventsService.getInitData().subscribe(initData => {
-            this.isAdmin$.next(initData.user.isAdmin)
-        })
 
     }
 
@@ -75,7 +69,6 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         this.enableUseCachedResultsSubscription.unsubscribe();
         this.loadingSubscription.unsubscribe();
         if (this.loadDataSubscription) this.loadDataSubscription.unsubscribe();
-        this.isAdminSubscription.unsubscribe();
         if (this.barcodeSubscription) this.barcodeSubscription.unsubscribe();
         if (this.findSimilarRunsSubscription) this.findSimilarRunsSubscription.unsubscribe();
     }
