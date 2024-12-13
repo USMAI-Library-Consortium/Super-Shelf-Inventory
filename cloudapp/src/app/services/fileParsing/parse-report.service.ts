@@ -49,6 +49,8 @@ export class ParseReportService {
         this.physicalItems$.next(null)
         Papa.parse(file, {
             header: true, // If your CSV has headers
+            delimiter: ",",
+            escapeChar: "\\",
             transformHeader: (header) => header.trim(),
             complete: (results: any) => {
                 const dataLookup: {
