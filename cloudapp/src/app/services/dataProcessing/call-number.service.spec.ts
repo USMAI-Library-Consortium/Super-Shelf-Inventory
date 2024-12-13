@@ -144,6 +144,22 @@ describe('CallNumberService', () => {
                 expect(result).toEqual(IN_CORRECT_ORDER)
             })
 
+            it ("Should sort user example 1 correctly", () => {
+                const a = getPhysicalItem('002 A963 2010')
+                const b = getPhysicalItem("002 B724")
+
+                let result = service.sortDewey(a, b, false)
+                expect(result).toEqual(IN_CORRECT_ORDER)
+            })
+
+            it ("Should sort ex11 correctly", () => {
+                const a = getPhysicalItem('002 B724 2010')
+                const b = getPhysicalItem("002 B724")
+
+                let result = service.sortDewey(a, b, false)
+                expect(result).toEqual(NEEDS_TO_BE_SWITCHED)
+            })
+
             it ("Should sort with description", () => {
                 const a = getPhysicalItem('980.03 A512', "v.10")
                 const b = getPhysicalItem("980.03 A512", "v.3")
