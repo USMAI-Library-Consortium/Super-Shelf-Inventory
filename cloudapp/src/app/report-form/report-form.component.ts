@@ -120,7 +120,7 @@ export class ReportForm implements OnInit, OnDestroy {
 
         this.postprocessSubscription = this.configurationService.get().subscribe(values => {
             if (!values) {
-                console.log("Postprocess Not Configured")
+                console.log("Postprocess Not Configured - using defaults (disabled)")
             } else {
                 if (values["inventoryField"] !== 'None' && values["inventoryField"] !== "undefined") {
                     this.inventoryForm.get("markAsInventoried").enable()

@@ -9,6 +9,9 @@
          "downloads": true
       }
    },
+   "pages": {
+      "settings": "/#/administration"
+   },
    "relevantForInst": [
       "01USMAI_UMCP",
       "01USMAI_MSU",
