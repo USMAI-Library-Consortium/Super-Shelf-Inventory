@@ -44,7 +44,8 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
         hasRequestProblem: null,
         hasTypeProblem: null,
         needsToBeScannedIn: false,
-        wasScannedIn: false
+        wasScannedIn: false,
+        hasTempLocation: false
     }
 }
 
@@ -62,7 +63,7 @@ describe('CallNumberService', () => {
 
     describe("Should sort Call Numbers correctly", () => {
 
-        describe("Should sort Dewey call numbers correctly", () => {
+        describe("Should sort Dewey classification numbers correctly", () => {
             it ("Should sort ex1 correctly", () => {
                 const a = getPhysicalItem('001.422 T593 2021')
                 const b = getPhysicalItem("001.422 T593s 2021")
@@ -226,6 +227,21 @@ describe('CallNumberService', () => {
     })
 
     describe("Should parse Call Numbers correctly", () => {
+
+        describe("Should parse Dewey classification Numbers correctly", () => {
+            it ('should parse full dewey number correctly', () => {
+                const deweyNumber = "641.5092 B37 2022"
+                const expectedResult = "641.50920_b 3700   _         _         _2022"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
+            it ('should parse dewey number with cutter suffix correctly', () => {
+                const deweyNumber = "001.422 T593s 2021"
+                const expectedResult = "001.42200_t 5930s  _         _         _2021"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+        })
+
         describe("Should parse LOC Call Numbers correctly", () => {
             it('Parse American Literature call num', () => {
                 const result = service.normalizeLC("PS3572.A39D66 2004")
