@@ -64,6 +64,8 @@ export class ReportForm implements OnInit, OnDestroy {
     private locationSubscription: Subscription;
     private circDeskSubscription: Subscription;
     private reportLoadingSubscription: Subscription;
+    private watchScanInSubscription: Subscription;
+    private watchOrderProblemsSubscription: Subscription;
 
     private markAsInventoriedField: string | null = null;
     private libraryDict: { [key: string]: number } = {};
@@ -104,8 +106,9 @@ export class ReportForm implements OnInit, OnDestroy {
         this.inventoryForm.get("markAsInventoried").disable()
         this.inventoryForm.get("scanInItems").disable()
         this.inventoryForm.get("circDesk").disable()
+        this.inventoryForm.get("reportOnlyProblems").disable()
 
-        this.inventoryForm.get("scanInItems").valueChanges.subscribe(scanIn => {
+        this.watchScanInSubscription = this.inventoryForm.get("scanInItems").valueChanges.subscribe(scanIn => {
             const circDeskInput = this.inventoryForm.get("circDesk");
             if (scanIn) {
                 circDeskInput.enable()
@@ -116,6 +119,17 @@ export class ReportForm implements OnInit, OnDestroy {
                 circDeskInput.setValue(null)
             }
             circDeskInput.updateValueAndValidity()
+        })
+
+        // When the 'limitOrderProblems' value changes to onlyOther, enable 'reportOnlyProblems'
+        // When it is set to any other value, disable the field and set it to 'false'
+        this.watchOrderProblemsSubscription = this.inventoryForm.get('limitOrderProblems').valueChanges.subscribe(limitOrderProblem => {
+            if (limitOrderProblem === "onlyOther") {
+                this.inventoryForm.get("reportOnlyProblems").enable()
+            } else {
+                this.inventoryForm.get("reportOnlyProblems").setValue(false)
+                this.inventoryForm.get("reportOnlyProblems").disable()
+            }
         })
 
         this.postprocessSubscription = this.configurationService.get().subscribe(values => {
@@ -234,6 +248,8 @@ export class ReportForm implements OnInit, OnDestroy {
         if (this.reportLoadingSubscription) this.reportLoadingSubscription.unsubscribe()
         this.physicalItemsSubscription.unsubscribe()
         this.postprocessSubscription.unsubscribe()
+        this.watchScanInSubscription.unsubscribe()
+        this.watchOrderProblemsSubscription.unsubscribe()
     }
 
     public onBack(): void {
