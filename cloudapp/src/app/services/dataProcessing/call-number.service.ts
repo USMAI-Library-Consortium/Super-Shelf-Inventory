@@ -194,7 +194,7 @@ export class CallNumberService {
         // Replace newline characters
         init = init.replace(/\n/g, "");
 
-        const deweyRegex = /^(?<classNumber>\d{3})(?<decimalNumber>\.\d{1,5})? *(?<cutter1>(?<cutter1Letter>[a-z]{1,2})(?<cutter1Number>\d{1,4})(?<cutter1Suffix>[a-z]{1,3} )?) *(?<cutter2>(?<cutter2Letter>[a-z]{1,2})(?<cutter2Number>\d{1,4})(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z]{1,2})(?<cutter3Number>\d{1,4})(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
+        const deweyRegex = /^(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z]{1,2})(?<cutter1Number>\d{1,4})\d*(?<cutter1Suffix>[a-z]{1,3} )?) *(?<cutter2>(?<cutter2Letter>[a-z]{1,2})(?<cutter2Number>\d{1,4})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z]{1,2})(?<cutter3Number>\d{1,4})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
         const match = init.match(deweyRegex);
         if (!match) return unparsable // return extreme answer if not a call number
 
@@ -230,6 +230,6 @@ export class CallNumberService {
         cutter2 = cutter2 ? `${cutter2Letter.padEnd(2, ' ')}${cutter2Number.padEnd(4, '0')}${cutter2Suffix.padEnd(3, ' ')}` : '         '
         cutter3 = cutter3 ? `${cutter3Letter.padEnd(3, ' ')}${cutter3Number.padEnd(4, '0')}${cutter3Suffix.padEnd(3, ' ')}` : '         '
 
-        return `${classNumber}${decimalNumber ? decimalNumber.padEnd(6, "0") : ".00000"}_${cutter1}_${cutter2}_${cutter3}_${theTrimmings}`
+        return `${classNumber}${decimalNumber ? decimalNumber.padEnd(11, "0") : ".0000000000"}_${cutter1}_${cutter2}_${cutter3}_${theTrimmings}`
     }
 }
