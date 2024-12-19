@@ -43,7 +43,7 @@ export class AdministrationComponent implements OnInit, OnDestroy {
             const configurationDefaultsSet = Object.keys(data.formGroup.value).length != 0
             if (configurationDefaultsSet) {
                 // If there is a FormGroup already saved in ConfigService, load this.
-                return of(data.formGroup.value)
+                return of(data.formGroup)
             } else {
                 if (data.isAdmin) {
                     // If there is NOT a FormGroup already saved in ConfigService, and the user is an Admin,
@@ -75,7 +75,7 @@ export class AdministrationComponent implements OnInit, OnDestroy {
             this.isAdmin$.next(isAdmin);
         })
 
-        // Calulate whether a user can save data. This enables/disables the save button.
+        // Calculate whether a user can save data. This enables/disables the save button.
         // A user can save if they're an admin, and the component isn't loading something.
         this.canSaveSubscription = combineLatest([this.loading$, this.isAdmin$]).pipe(map(vals => {
             return {
