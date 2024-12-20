@@ -1,8 +1,8 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
-import {BehaviorSubject, of, Subscription} from "rxjs";
-import {switchMap} from "rxjs/operators";
+import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
+import {catchError, map, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {StateService, PreviousRun} from "../services/apis/state.service";
@@ -128,7 +128,8 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
             this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
                 return this.setService.createSet(barcodes)
             }), switchMap(almaSet => {
-                return this.ejs.runExportJob(almaSet)
+                if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
+                else return this.ejs.runExportJob(almaSet)
             }), switchMap(almaJob => {
                 return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
                     return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, almaJob.jobDate, almaJob.dataExtractUrl, almaJob.jobId)

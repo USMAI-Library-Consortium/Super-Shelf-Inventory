@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
-import {catchError, filter, map, switchMap, take, tap} from "rxjs/operators";
+import {catchError, filter, map, retry, switchMap, take, tap} from "rxjs/operators";
 import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
-import {CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
+import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 
 
 export interface AlmaSet {
@@ -25,13 +25,13 @@ export class SetService {
 
     private setInfo$: BehaviorSubject<AlmaSet | null> = new BehaviorSubject(null);
 
-    constructor(private restService: CloudAppRestService) {
+    constructor(private restService: CloudAppRestService, private alert: AlertService) {
     }
 
-    public createSet(barcodes: string[]): Observable<AlmaSet> {
+    public createSet(barcodes: string[]): Observable<AlmaSet | null> {
         return this.createBaseSet().pipe(switchMap(set => {
-            return this.addMembersToSet(set, barcodes).pipe(tap(set => {
-                this.setInfo$.next(set)
+            return this.addMembersToSet(set, barcodes).pipe(tap(result => {
+                this.setInfo$.next(result)
             }))
         }))
     }
@@ -98,7 +98,7 @@ export class SetService {
         return {setName, newSet};
     }
 
-    private addMembersToSet(setInfo: AlmaSet, barcodes: string[]): Observable<AlmaSet> {
+    private addMembersToSet(setInfo: AlmaSet, barcodes: string[]): Observable<AlmaSet | null> {
         const addSetMemberBodies = this.generateAddMembersBodies(barcodes);
 
         const addMemberToSetJobs = addSetMemberBodies.map(body => {
@@ -107,8 +107,9 @@ export class SetService {
                 url: `/conf/sets/${setInfo.id}?op=add_members&fail_on_invalid_id=false&id_type=BARCODE`,
                 method: HttpMethod.POST,
                 requestBody: body,
-            }).pipe(catchError(result => {
-                console.log(result.error)
+            }).pipe(retry(1), catchError(e => {
+                this.alert.error("Could not add some members to set.")
+                console.log(e)
                 return of(false)
             }), map(result => {
                 if (result) {
@@ -132,7 +133,7 @@ export class SetService {
             })
             this.addMembersToSetDone$.next(true)
             if (successful) return setInfo
-            else new Error("Failed to add members to the set")
+            else return null
         }))
     }
 
