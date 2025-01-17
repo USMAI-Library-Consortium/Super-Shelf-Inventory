@@ -138,7 +138,7 @@ export class SetService {
     }
 
     protected generateAddMembersBodies(barcodes: string[]) {
-        const maxChunkSize = 500;
+        const maxChunkSize = 1000;
         const barcodeChunks: string[][] = [];
 
         barcodes.forEach((barcode, i) => {
