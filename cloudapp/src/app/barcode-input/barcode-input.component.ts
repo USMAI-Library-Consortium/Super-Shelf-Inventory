@@ -2,7 +2,7 @@ import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
-import {catchError, map, switchMap} from "rxjs/operators";
+import {switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {StateService, PreviousRun} from "../services/apis/state.service";

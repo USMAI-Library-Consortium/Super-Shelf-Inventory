@@ -4,6 +4,7 @@ import {BehaviorSubject, combineLatest, of, Subject, Subscription} from "rxjs";
 import {CloudAppConfigService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 import {filter, map, switchMap} from "rxjs/operators";
 import { FormGroupUtil } from "@exlibris/exl-cloudapp-angular-lib";
+import {Router} from "@angular/router";
 
 @Component({
     selector: 'app-administration',
@@ -26,10 +27,9 @@ export class AdministrationComponent implements OnInit, OnDestroy {
     private loadConfigSubscription: Subscription;
     private isAdminSubscription: Subscription;
     private canSaveSubscription: Subscription; // We want to be able to click save only when there is no loading and when user is admin
-    private goBackSubscription: Subscription;
     private disableFieldsSubscription: Subscription;
 
-    constructor(private configService: CloudAppConfigService, public eventService: CloudAppEventsService) {
+    constructor(private configService: CloudAppConfigService, public eventService: CloudAppEventsService, private router: Router) {
     }
 
     ngOnInit(): void {
@@ -108,12 +108,11 @@ export class AdministrationComponent implements OnInit, OnDestroy {
         this.loadConfigSubscription.unsubscribe();
         this.isAdminSubscription.unsubscribe();
         this.canSaveSubscription.unsubscribe();
-        if (this.goBackSubscription) this.goBackSubscription.unsubscribe();
         this.disableFieldsSubscription.unsubscribe();
     }
 
     onBack() {
-        this.goBackSubscription = this.eventService.back().subscribe()
+        this.router.navigate(['/'])
     }
 
     onSubmit() {
