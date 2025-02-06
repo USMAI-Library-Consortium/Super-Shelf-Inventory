@@ -123,7 +123,8 @@ export class PostprocessService {
     }
 
     private getRequestBody(inventoryField: string, formattedScanDate: string, scanDate: string, set: AlmaSet) {
-        return `<job>
+        const timestamp = new Date(scanDate).getTime()
+        const job = `<job>
                             <parameters>
                                 <parameter>
                                     <name>IS_MAGNETIC_condition</name>
@@ -435,7 +436,7 @@ export class PostprocessService {
                                 </parameter>
                                 <parameter>
                                     <name>INVENTORY_DATE_value</name>
-                                    <value>${inventoryField === "inventory_date" ? scanDate : 0}</value>
+                                    <value>${inventoryField === "inventory_date" ? timestamp : 0}</value>
                                 </parameter>
                                 <parameter>
                                     <name>PUBLIC_NOTE_selected</name>
@@ -812,6 +813,8 @@ export class PostprocessService {
                             </parameters>
                         </job>
 
-            `;
+            `
+        console.log(job)
+        return job;
     }
 }
