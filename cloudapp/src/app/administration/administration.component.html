@@ -16,10 +16,9 @@
     </button>
 </div>
 
-<h2>Postprocessing Administration - Set Options</h2>
-
 <div *ngIf="!(loading$ | async); else loading">
     <form (ngSubmit)="onSubmit()" class="inventory-form"  [formGroup]="configurationForm">
+        <h2>Postprocessing Administration - Set Options</h2>
         <mat-form-field>
             <mat-label>Mark As Inventoried Field</mat-label>
             <mat-select formControlName="inventoryField">
@@ -42,6 +41,24 @@
                 <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
         </div>
+
+        <h2 style="margin-bottom: 0; margin-top: 2rem">Permissions Bypass - Set Options</h2>
+        <mat-form-field>
+            <mat-label>API Region</mat-label>
+            <mat-select formControlName="region">
+                <mat-option value="https://api-na.hosted.exlibrisgroup.com">North America</mat-option>
+                <mat-option value="https://api-eu.hosted.exlibrisgroup.com">Europe</mat-option>
+                <mat-option value="https://api-ap.hosted.exlibrisgroup.com">Asia Pacific</mat-option>
+                <mat-option value="https://api-ca.hosted.exlibrisgroup.com">Canada</mat-option>
+                <mat-option value="https://api-cn.hosted.exlibrisgroup.com.cn">China</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+            <mat-label>Jobs API Key (Read/Write)</mat-label>
+            <input matInput formControlName="jobsAPIKey" placeholder="Enter API Key">
+        </mat-form-field>
+        <p style="margin-bottom: 2rem; margin-top: -.5rem">Will be used as a fallback for Export Physical Items job, which is required for the app to run.</p>
     </form>
 </div>
 

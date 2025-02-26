@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FormGroup} from "@angular/forms";
+import {FormControl, FormGroup} from "@angular/forms";
 import {BehaviorSubject, combineLatest, of, Subject, Subscription} from "rxjs";
 import {CloudAppConfigService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 import {filter, map, switchMap} from "rxjs/operators";
@@ -43,6 +43,8 @@ export class AdministrationComponent implements OnInit, OnDestroy {
             const configurationDefaultsSet = Object.keys(data.formGroup.value).length != 0
             if (configurationDefaultsSet) {
                 // If there is a FormGroup already saved in ConfigService, load this.
+                if (!data.formGroup.contains("region")) data.formGroup.addControl("region", new FormControl(""))
+                if (!data.formGroup.contains("jobsAPIKey")) data.formGroup.addControl("jobsAPIKey", new FormControl(null))
                 return of(data.formGroup)
             } else {
                 if (data.isAdmin) {
@@ -50,7 +52,9 @@ export class AdministrationComponent implements OnInit, OnDestroy {
                     // save a default
                     return this.configService.set({
                         "inventoryField": "None",
-                        "allowScanIn": false
+                        "allowScanIn": false,
+                        "region": null,
+                        "jobsAPIKey": "",
                     }).pipe(switchMap(_ => {
                         return this.configService.getAsFormGroup()
                     }))
@@ -59,7 +63,9 @@ export class AdministrationComponent implements OnInit, OnDestroy {
                     // they cannot save the default. So, return a default.
                     return of(FormGroupUtil.toFormGroup({
                         "inventoryField": "None",
-                        "allowScanIn": false
+                        "allowScanIn": false,
+                        "region": null,
+                        "jobsAPIKey": "",
                     }))
                 }
             }
@@ -98,6 +104,8 @@ export class AdministrationComponent implements OnInit, OnDestroy {
             if (!data.isAdmin) {
                 this.configurationForm.get("inventoryField").disable()
                 this.configurationForm.get("allowScanIn").disable()
+                this.configurationForm.get("region").disable()
+                this.configurationForm.get("jobsAPIKey").disable()
             }
             this.loading$.next(false)
         })
