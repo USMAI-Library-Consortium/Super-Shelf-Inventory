@@ -6,12 +6,15 @@
    "description": "FOR TESTING AND VERIFICATION PURPOSES ONLY. Cloud app to assist with a shelf inventory process.",
    "contentSecurity": {
       "sandbox": {
-         "downloads": true,
-         "connectSrc": [
-            "https://api-*.hosted.exlibrisgroup.com*",
-            "*"
-         ]
-      }
+         "downloads": true
+      },
+      "connectSrc": [
+         "https://api-na.hosted.exlibrisgroup.com/",
+         "https://api-eu.hosted.exlibrisgroup.com/",
+         "https://api-ap.hosted.exlibrisgroup.com/",
+         "https://api-ca.hosted.exlibrisgroup.com/",
+         "https://api-cn.hosted.exlibrisgroup.com.cn/"
+      ]
    },
    "pages": {
       "settings": "/#/administration"
