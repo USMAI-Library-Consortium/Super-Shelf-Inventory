@@ -45,7 +45,13 @@ export class ExportJobService {
                     "Content-Type": "application/xml",
                     Accept: "application/json",
                 },
-                requestBody: `<job>
+                requestBody: this.formatRequestBody(set),
+            })
+            .pipe(switchMap(result => this.waitForJob(result)));
+    }
+
+    private formatRequestBody(set: AlmaSet) {
+        return `<job>
         <parameters>
           <parameter>
             <name>task_ExportParams_outputFormat_string</name>
@@ -73,28 +79,22 @@ export class ExportJobService {
           </parameter>
         </parameters>
       </job>
-      `,
-            })
-            .pipe(switchMap(result => {
-                const job: AlmaJob = {
-                    jobId: this.parseJobIdFromUrl(result["additional_info"]["link"]),
-                    // url: (result["additional_info"]["link"] as string).replace("/almaws/v1", "")
-                    dataExtractUrl: result["additional_info"]["link"],
-                    jobDate: new Date().getTime().toString()
-                }
-
-                return this.checkJobProgress(job.dataExtractUrl, job.jobId).pipe(map(result => {
-                    return job
-                }));
-            }), tap(almaJob => {
-                this.job$.next(almaJob);
-            }))
+      `
     }
 
-    public parseJobIdFromUrl(url: string) {
-        return url.replace(
-            "/almaws/v1/conf/jobs/M48/instances/",
-            "")
+    private waitForJob(result: object): Observable<AlmaJob> {
+        const job: AlmaJob = {
+            jobId: this.parseJobIdFromUrl(result["additional_info"]["link"]),
+            // url: (result["additional_info"]["link"] as string).replace("/almaws/v1", "")
+            dataExtractUrl: result["additional_info"]["link"],
+            jobDate: new Date().getTime().toString()
+        }
+
+        return this.checkJobProgress(job.dataExtractUrl, job.jobId).pipe(map(result => {
+            return job
+        }), tap(almaJob => {
+            this.job$.next(almaJob);
+        }));
     }
 
     private checkJobProgress(url: string, id: string) {
@@ -118,6 +118,12 @@ export class ExportJobService {
             filter((result) => result["progress"] === 100 && result["status"]['value'] === "COMPLETED_SUCCESS"),
             take(1)
         );
+    }
+
+    public parseJobIdFromUrl(url: string) {
+        return url.replace(
+            "/almaws/v1/conf/jobs/M48/instances/",
+            "")
     }
 
     reset() {
