@@ -3,7 +3,7 @@ import {Subscription} from "rxjs";
 import {Router} from "@angular/router";
 
 import {PostprocessService} from "../services/apis/postprocess.service";
-import {ParseReportService} from "../services/fileParsing/parse-report.service";
+import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 
@@ -18,7 +18,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
     constructor(public reportService: ReportService,
                 public postprocessService: PostprocessService,
-                private prs: ParseReportService,
+                private prs: PhysicalItemInfoService,
                 private iii: IndividualItemInfoService,
                 private router: Router) {
     }

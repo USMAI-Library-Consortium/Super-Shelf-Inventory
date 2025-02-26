@@ -1,13 +1,13 @@
 import {TestBed} from '@angular/core/testing';
 
-import {ParseReportService} from './parse-report.service';
+import {PhysicalItemInfoService} from './physical-item-info.service';
 
 describe('ParseReportService', () => {
-    let service: ParseReportService;
+    let service: PhysicalItemInfoService;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
-        service = TestBed.inject(ParseReportService);
+        service = TestBed.inject(PhysicalItemInfoService);
     });
 
     it('should be created', () => {

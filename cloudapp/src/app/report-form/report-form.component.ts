@@ -7,7 +7,7 @@ import {CloudAppConfigService, CloudAppRestService} from "@exlibris/exl-cloudapp
 
 import {SetService} from "../services/apis/set.service";
 import {PostprocessService} from "../services/apis/postprocess.service";
-import {ParseReportService} from "../services/fileParsing/parse-report.service";
+import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
@@ -77,7 +77,7 @@ export class ReportForm implements OnInit, OnDestroy {
         private restService: CloudAppRestService,
         private fb: FormBuilder,
         private bps: BarcodeParserService,
-        private prs: ParseReportService,
+        private prs: PhysicalItemInfoService,
         private iii: IndividualItemInfoService,
         private reportService: ReportService,
         public setService: SetService,

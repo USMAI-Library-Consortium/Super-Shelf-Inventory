@@ -1,5 +1,5 @@
 import {Injectable} from "@angular/core";
-import {ParseReportService, PhysicalItem} from "../fileParsing/parse-report.service";
+import {PhysicalItemInfoService, PhysicalItem} from "../fileParsing/physical-item-info.service";
 import {Observable, ReplaySubject, Subscription} from "rxjs";
 import * as XLSX from 'xlsx';
 import {filter, take} from "rxjs/operators";
@@ -53,7 +53,7 @@ export class ReportService {
     reportProcessed$: ReplaySubject<ReportData | null> = new ReplaySubject(1)
     physicalItemsSubscription: Subscription = null
 
-    constructor(private prs: ParseReportService, private callNumberService: CallNumberService) {
+    constructor(private prs: PhysicalItemInfoService, private callNumberService: CallNumberService) {
     }
 
     getLatestReport() {

@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
 import {BehaviorSubject, from, Observable, of, Subject} from "rxjs";
-import {PhysicalItem} from "../fileParsing/parse-report.service";
+import {PhysicalItem} from "../fileParsing/physical-item-info.service";
 import {filter, map, mergeMap, take, tap, toArray} from "rxjs/operators";
 
 interface IndividualItemInfoProgress {
