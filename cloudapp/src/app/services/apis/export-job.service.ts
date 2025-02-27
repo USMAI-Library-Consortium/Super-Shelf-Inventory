@@ -184,6 +184,7 @@ export class ExportJobService {
                         physicalItems.push({
                             barcode,
                             existsInAlma: true,
+                            source: 'job',
                             title: data.title,
                             description: data.description.replace(" ", ""),
                             mmsId: data.mmsId?.replace(/'/g, ""),
@@ -206,6 +207,7 @@ export class ExportJobService {
                         physicalItems.push({
                             barcode,
                             existsInAlma: false,
+                            source: 'job',
                             title: null,
                             description: null,
                             mmsId: null,

@@ -2,13 +2,14 @@ import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
-import {switchMap} from "rxjs/operators";
+import {catchError, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
 import {SetService} from "../services/apis/set.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
+import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
 @Component({
     selector: "app-barcode-input",
@@ -22,10 +23,12 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         false
     );
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
-    public jobRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
+    public dataLoadRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public previousRun: PreviousRun = null;
+    public mode: string = "job"
 
     private enableUseCachedResultsSubscription: Subscription;
+    private jobModeSubscription: Subscription;
     private loadingSubscription: Subscription;
     private loadDataSubscription: Subscription;
     private barcodeSubscription: Subscription;
@@ -38,6 +41,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         private bps: BarcodeParserService,
         public setService: SetService,
         public ejs: ExportJobService,
+        public bies: BackupItemExportService,
         private alert: AlertService,
     ) {
     }
@@ -47,6 +51,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
             barcodeXLSXFile: [null, Validators.required],
             scanDate: [null, Validators.required],
             useCachedResults: [false, Validators.required],
+            mode: ["job", Validators.required],
         });
 
         this.enableUseCachedResultsSubscription =
@@ -57,6 +62,16 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     ? this.barcodeForm.get("useCachedResults").enable()
                     : this.barcodeForm.get("useCachedResults").disable();
             });
+
+        this.jobModeSubscription = this.barcodeForm.get("mode")?.valueChanges.subscribe(newMode => {
+            this.mode = newMode;
+            if (this.mode === "api") {
+                this.enableUseCachedResults$.next(false)
+            } else {
+                if (this.previousRun) this.enableUseCachedResults$.next(true)
+            }
+        })
+
         this.loadingSubscription = this.loading$.subscribe((isLoading) => {
             isLoading
                 ? this.barcodeForm.get("barcodeXLSXFile").disable()
@@ -68,6 +83,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.enableUseCachedResultsSubscription.unsubscribe();
         this.loadingSubscription.unsubscribe();
+        this.jobModeSubscription.unsubscribe();
         if (this.loadDataSubscription) this.loadDataSubscription.unsubscribe();
         if (this.barcodeSubscription) this.barcodeSubscription.unsubscribe();
         if (this.findSimilarRunsSubscription) this.findSimilarRunsSubscription.unsubscribe();
@@ -116,40 +132,79 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         const scanDate: string = this.barcodeForm.get("scanDate").value
         this.bps.setScanDate(scanDate)
 
-        if (useCachedResults) {
-            this.ejs.usePreviousRun({
-                jobDate: this.previousRun.jobDate,
-                dataExtractUrl: this.previousRun.dataExtractUrl,
-                jobId: this.ejs.parseJobIdFromUrl(this.previousRun.dataExtractUrl)
-            })
-            this.router.navigate(["job-results-input"])
-        } else {
-            this.jobRunning$.next(true)
-            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
-                return this.setService.createSet(barcodes)
-            }), switchMap(almaSet => {
-                if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
-                else return this.ejs.runExportJob(almaSet)
-            }), switchMap(almaJob => {
-                return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
-                    return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, almaJob.jobDate, almaJob.dataExtractUrl, almaJob.jobId)
-                }), switchMap(_ => of(almaJob)))
-            })).subscribe(_ => {
-                this.router.navigate(["job-results-input"])
+        const mode: string = this.barcodeForm.get("mode").value
+
+        if (mode === "api") {
+            this.dataLoadRunning$.next(true)
+            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes))).subscribe(_ => {
+                this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
-                this.alert.error(error.message + " (Applies to API only)")
+                console.error(error)
+                this.mode = "job"
                 this.bps.reset()
                 this.ejs.reset()
                 this.setService.reset()
-                this.jobRunning$.next(false)
+                this.dataLoadRunning$.next(false)
                 this.barcodeForm.get("barcodeXLSXFile").setValue(null)
                 this.barcodeForm.get("scanDate").setValue(null)
                 this.barcodeForm.get("useCachedResults").setValue(null)
                 this.enableUseCachedResults$.next(false);
             })
-        }
+        } else {
+            if (useCachedResults) {
+                this.ejs.usePreviousRun({
+                    jobDate: this.previousRun.jobDate,
+                    dataExtractUrl: this.previousRun.dataExtractUrl,
+                    jobId: this.ejs.parseJobIdFromUrl(this.previousRun.dataExtractUrl)
+                })
+                this.router.navigate(["job-results-input"])
+            } else {
+                this.dataLoadRunning$.next(true)
+                this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
+                    return this.setService.createSet(barcodes)
+                }), switchMap(almaSet => {
+                    if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
+                    else return this.ejs.runExportJob(almaSet)
+                }), catchError(err => {
+                    // If there is an error with using the Jobs API, fall back to the
+                    console.log(err)
+                    this.alert.warn("Error: Switching to API Mode...")
+                    this.mode = "api"
+                    return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
+                }), switchMap(result => {
+                    // Save the job run, if the job was run.
+                    if (result.hasOwnProperty("jobDate")) {
+                        return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
+                            // @ts-ignore
+                            // It will be an AlmaJob by now.
+                            return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, almaJob.jobDate, almaJob.dataExtractUrl, almaJob.jobId)
+                        }), switchMap(_ => of(result)))
+                    } else {
+                        // It is a physical item array here.
+                        return of(result)
+                    }
+                })).subscribe(result => {
+                    if (result.hasOwnProperty("jobDate")) {
+                        this.router.navigate(["job-results-input"])
+                    } else {
+                        this.router.navigate(["configure-report"])
+                    }
 
+                }, error => {
+                    // Reset the component
+                    this.mode = "job"
+                    this.bps.reset()
+                    this.ejs.reset()
+                    this.setService.reset()
+                    this.dataLoadRunning$.next(false)
+                    this.barcodeForm.get("barcodeXLSXFile").setValue(null)
+                    this.barcodeForm.get("scanDate").setValue(null)
+                    this.barcodeForm.get("useCachedResults").setValue(null)
+                    this.enableUseCachedResults$.next(false);
+                })
+            }
+        }
     }
 }
 

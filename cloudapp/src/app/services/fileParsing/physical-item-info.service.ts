@@ -6,6 +6,7 @@ import {filter, take} from "rxjs/operators";
 export interface PhysicalItem {
     barcode: string,
     existsInAlma: boolean,
+    source: string, // Whether the data was pulled from job 'job' or item api 'api'
 
     mmsId: string | null,
     holdingId: string | null,

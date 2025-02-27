@@ -1,4 +1,4 @@
-<div *ngIf="!(jobRunning$ | async); else jobRunningDisplay">
+<div *ngIf="!(dataLoadRunning$ | async); else dataLoadRunningDisplay">
     <div class="eca-actions">
         <button
                 mat-flat-button
@@ -47,7 +47,7 @@
             </mat-form-field>
 
             <!-- Reuse data. Show only if there is a history of processing this file. -->
-            <div *ngIf="previousRun">
+            <div *ngIf="previousRun && mode === 'job'">
                 <app-run-info prefix="Previous" [runInfo]="previousRun"></app-run-info>
                 <p style="margin-top: .75rem; font-weight: bold;">
                     Your file looks very similar to this previous run. To save 1 of your
@@ -66,6 +66,17 @@
                 </mat-radio-group>
             </div>
 
+            <div class="inventory-form__field">
+                <label for="useCachedResultsInput">Data Load Mode</label>
+                <mat-radio-group
+                        id="modeInput"
+                        formControlName="mode"
+                >
+                    <mat-radio-button value="job">Job API (recommended)</mat-radio-button>
+                    <mat-radio-button value="api">Items API (Alpha)</mat-radio-button>
+                </mat-radio-group>
+            </div>
+
             <p *ngIf="!previousRun">
                 Clicking 'Next' will load data from Alma. Loading may take a few minutes
             </p>
@@ -73,10 +84,9 @@
     </div>
 </div>
 
-<ng-template #jobRunningDisplay>
-    <div class="spinner-container">
+<ng-template #dataLoadRunningDisplay>
+    <div *ngIf="mode==='job'" class="spinner-container">
         <mat-progress-spinner
-                style="margin-bottom: 1rem;"
                 mode="indeterminate"
                 diameter="50"
         ></mat-progress-spinner>
@@ -91,5 +101,16 @@
             <p>Progress: {{jobProgress.percentage}}%</p>
             <p>Status: {{jobProgress.status}}</p>
         </div>
+    </div>
+
+    <div *ngIf="mode==='api'" class="spinner-container">
+        <mat-progress-spinner *ngIf="bies.total > 0; else initializing" mode="determinate"
+                              diameter="50" [value]="bies.complete / bies.total">
+        </mat-progress-spinner>
+        <ng-template #initializing>
+            <p>Initializing...</p>
+        </ng-template>
+        <p>Total: {{bies.total}}</p>
+        <p>Complete: {{bies.complete}}</p>
     </div>
 </ng-template>

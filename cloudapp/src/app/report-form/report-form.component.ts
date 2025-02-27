@@ -253,10 +253,16 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     public onBack(): void {
-        this.prs.reset()
-        this.iii.reset()
-        this.reportService.reset()
-        this.router.navigate(['/', 'job-results-input'])
+        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(items => {
+            this.prs.reset()
+            this.iii.reset()
+            this.reportService.reset()
+            if(items[0].source == 'job') {
+                this.router.navigate(['/', 'job-results-input'])
+            } else {
+                this.router.navigate(['/'])
+            }
+        })
     }
 
     public onSubmit() {
