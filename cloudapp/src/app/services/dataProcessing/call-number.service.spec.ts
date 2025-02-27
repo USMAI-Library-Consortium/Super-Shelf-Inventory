@@ -10,6 +10,7 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
     return {
         barcode: "string",
         existsInAlma: true,
+        source: "job",
 
         mmsId: "",
         holdingId: "",
