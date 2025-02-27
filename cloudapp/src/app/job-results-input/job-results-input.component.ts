@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {BehaviorSubject, Subscription} from "rxjs";
+import {BehaviorSubject, of, Subscription} from "rxjs";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {Router} from "@angular/router";
 
@@ -52,7 +52,10 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     onSubmit() {
         this.loading$.next(true)
         this.loadDataSubscription = this.piis.getLatestPhysicalItems().pipe(switchMap(items => {
-            return this.iii.pullTempLocationItemInfo(items)
+            if (items[0].source === 'job') {
+                return this.iii.pullTempLocationItemInfo(items)
+            }
+            return of(items)
         })).subscribe(_ => {
             this.loading$.next(false);
             this.router.navigate(["configure-report"])
