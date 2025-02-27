@@ -192,6 +192,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     if (result.hasOwnProperty("jobDate")) {
                         this.router.navigate(["job-results-input"])
                     } else {
+                        console.log("Setting Results...")
                         // @ts-ignore
                         this.piis.setLatestPhysicalItems(result)
                         this.router.navigate(["configure-report"])

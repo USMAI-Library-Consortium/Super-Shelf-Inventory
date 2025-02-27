@@ -176,7 +176,7 @@ export class ReportForm implements OnInit, OnDestroy {
                 // })
             });
 
-        this.physicalItemsSubscription = this.iii.getLatestPhysicalItemInfo().subscribe(physicalItems => {
+        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(physicalItems => {
             physicalItems.forEach((physicalItem) => {
                 if (physicalItem.library) {
                     if (this.libraryDict.hasOwnProperty(physicalItem.library)) {
@@ -281,7 +281,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.iii.getLatestPhysicalItemInfo()]).pipe(map(values => {
+        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.prs.getLatestPhysicalItems()]).pipe(map(values => {
             return {
                 scanDate: values[0],
                 physicalItems: values[1],

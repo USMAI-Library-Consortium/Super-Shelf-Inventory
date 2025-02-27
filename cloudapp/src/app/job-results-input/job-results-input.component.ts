@@ -56,7 +56,7 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
                 return this.iii.pullTempLocationItemInfo(items)
             }
             return of(items)
-        })).subscribe(_ => {
+        }), tap(items => this.piis.setLatestPhysicalItems(items))).subscribe(_ => {
             this.loading$.next(false);
             this.router.navigate(["configure-report"])
         }, err => {
