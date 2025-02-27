@@ -6,6 +6,7 @@ import {PostprocessService} from "../services/apis/postprocess.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
+import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
 @Component({
     selector: 'app-results',
@@ -20,6 +21,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
                 public postprocessService: PostprocessService,
                 private prs: PhysicalItemInfoService,
                 private iii: IndividualItemInfoService,
+                private bes: BackupItemExportService,
                 private router: Router) {
     }
 
@@ -33,6 +35,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
         this.reportService.getLatestReport().subscribe(data => {
             this.reportService.reset()
             this.iii.reset()
+            this.bes.reset()
             this.prs.reset()
             this.postprocessService.reset()
             this.router.navigate(['/'])

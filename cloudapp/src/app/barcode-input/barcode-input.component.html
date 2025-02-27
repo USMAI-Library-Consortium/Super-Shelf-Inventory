@@ -105,7 +105,7 @@
 
     <div *ngIf="mode==='api'" class="spinner-container">
         <mat-progress-spinner *ngIf="bies.total > 0; else initializing" mode="determinate"
-                              diameter="50" [value]="bies.complete / bies.total">
+                              diameter="50" [value]="(bies.complete / bies.total) * 100">
         </mat-progress-spinner>
         <ng-template #initializing>
             <p>Initializing...</p>

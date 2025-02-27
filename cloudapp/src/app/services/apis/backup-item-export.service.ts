@@ -77,4 +77,9 @@ export class BackupItemExportService {
       requested: response['item_data']['requested'],
     }
   }
+
+  public reset() {
+    this.complete = 0
+    this.total = 0
+  }
 }

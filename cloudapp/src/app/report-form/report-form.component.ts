@@ -11,6 +11,7 @@ import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-inf
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
+import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
 interface Library {
     name: string;
@@ -82,6 +83,7 @@ export class ReportForm implements OnInit, OnDestroy {
         private reportService: ReportService,
         public setService: SetService,
         public postProcessService: PostprocessService,
+        private bes: BackupItemExportService,
         private router: Router,
         private configurationService: CloudAppConfigService,
     ) {
@@ -256,6 +258,7 @@ export class ReportForm implements OnInit, OnDestroy {
         this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(items => {
             this.prs.reset()
             this.iii.reset()
+            this.bes.reset()
             this.reportService.reset()
             if(items[0].source == 'job') {
                 this.router.navigate(['/', 'job-results-input'])
