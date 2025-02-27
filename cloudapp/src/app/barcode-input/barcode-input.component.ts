@@ -10,6 +10,8 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {SetService} from "../services/apis/set.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {BackupItemExportService} from "../services/apis/backup-item-export.service";
+import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
+import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 
 @Component({
     selector: "app-barcode-input",
@@ -43,6 +45,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         public ejs: ExportJobService,
         public bies: BackupItemExportService,
         private alert: AlertService,
+        private piis: PhysicalItemInfoService,
     ) {
     }
 
@@ -136,7 +139,8 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
         if (mode === "api") {
             this.dataLoadRunning$.next(true)
-            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes))).subscribe(_ => {
+            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes))).subscribe(items => {
+                this.piis.setLatestPhysicalItems(items)
                 this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
@@ -188,6 +192,8 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     if (result.hasOwnProperty("jobDate")) {
                         this.router.navigate(["job-results-input"])
                     } else {
+                        // @ts-ignore
+                        this.piis.setLatestPhysicalItems(result)
                         this.router.navigate(["configure-report"])
                     }
 
