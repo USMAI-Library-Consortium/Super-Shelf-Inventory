@@ -138,7 +138,7 @@ export class ReportForm implements OnInit, OnDestroy {
             if (!values) {
                 console.log("Postprocess Not Configured - using defaults (disabled)")
             } else {
-                if (values["inventoryField"] !== 'None' && values["inventoryField"] !== "undefined") {
+                if (values["inventoryField"] && values["inventoryField"] !== 'None' && values["inventoryField"] !== "undefined") {
                     this.inventoryForm.get("markAsInventoried").enable()
                     this.markAsInventoriedField = values["inventoryField"];
                     console.log(`Marking Inventory Enabled - stored in ${values["inventoryField"]}`)

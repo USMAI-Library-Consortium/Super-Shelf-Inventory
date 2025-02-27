@@ -182,7 +182,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                         return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
                             // @ts-ignore
                             // It will be an AlmaJob by now.
-                            return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, almaJob.jobDate, almaJob.dataExtractUrl, almaJob.jobId)
+                            return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId)
                         }), switchMap(_ => of(result)))
                     } else {
                         // It is a physical item array here.
@@ -190,6 +190,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     }
                 })).subscribe(result => {
                     if (result.hasOwnProperty("jobDate")) {
+                        console.log("Navigating")
                         this.router.navigate(["job-results-input"])
                     } else {
                         console.log("Setting Results...")
@@ -200,6 +201,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
                 }, error => {
                     // Reset the component
+                    console.log(error)
                     this.mode = "job"
                     this.bps.reset()
                     this.ejs.reset()
