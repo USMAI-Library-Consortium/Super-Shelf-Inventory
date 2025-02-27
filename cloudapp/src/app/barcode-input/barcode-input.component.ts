@@ -10,7 +10,6 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {SetService} from "../services/apis/set.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {BackupItemExportService} from "../services/apis/backup-item-export.service";
-import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 
 @Component({

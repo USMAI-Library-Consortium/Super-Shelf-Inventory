@@ -109,17 +109,27 @@ export class PostprocessService {
             },
             requestBody: this.getRequestBody(inventoryField, formattedScanDate, scanDate, set),
         }).pipe(map(result => {
-            return {
-                jobId: (result["additional_info"]["link"] as string).replace(
-                    "/almaws/v1/conf/jobs/M18/instances/",
-                    ""),
-                dataExtractUrl: (result["additional_info"]["link"] as string).replace("/almaws/v1", ""),
-                jobDate: new Date().getTime().toString(),
-                markAsInventoriedField: inventoryField
-            }
-        }), tap(result => {
-            this.markAsInventoriedStarted$.next(result)
-        }))
+                return {
+                    jobId: (result["additional_info"]["link"] as string).replace(
+                        "/almaws/v1/conf/jobs/M18/instances/",
+                        ""),
+                    dataExtractUrl: (result["additional_info"]["link"] as string).replace("/almaws/v1", ""),
+                    jobDate: new Date().getTime().toString(),
+                    markAsInventoriedField: inventoryField
+                }
+            }),
+            catchError(err => {
+                console.log(err)
+                return of({
+                    jobId: set.id.toString(),
+                    jobDate: null,
+                    dataExtractUrl: null,
+                    markAsInventoriedField: null
+                })
+            }),
+            tap(result => {
+                this.markAsInventoriedStarted$.next(result)
+            }))
     }
 
     private getRequestBody(inventoryField: string, formattedScanDate: string, scanDate: string, set: AlmaSet) {
