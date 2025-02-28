@@ -126,11 +126,7 @@
             <!-- Circ Desk Input -->
             <mat-form-field *ngIf="inventoryForm.get('scanInItems').value">
                 <mat-label>Circ Desk for Scan In Operation</mat-label>
-                <mat-select formControlName="circDesk">
-                    <mat-option *ngFor="let circDesk of circDesksForDropdown" [value]="circDesk.code">
-                        {{ circDesk.name }}
-                    </mat-option>
-                </mat-select>
+                <input matInput formControlName="circDesk" placeholder="Circ Desk Code">
             </mat-form-field>
         </form>
     </div>

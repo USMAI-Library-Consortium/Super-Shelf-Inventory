@@ -249,6 +249,8 @@ export class ReportForm implements OnInit, OnDestroy {
                 }
             }
         }
+
+        if (circDesk) this.inventoryForm.get('circDesk').setValue(circDesk)
     }
 
     private parsePhysicalItemAutofillData(physicalItems: PhysicalItem[]) {
@@ -334,7 +336,6 @@ export class ReportForm implements OnInit, OnDestroy {
         } else {
             circDeskInput.clearValidators()
             circDeskInput.disable()
-            circDeskInput.setValue(null)
         }
         circDeskInput.updateValueAndValidity()
     }
