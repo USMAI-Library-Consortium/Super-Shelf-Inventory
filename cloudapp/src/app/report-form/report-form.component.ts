@@ -1,15 +1,15 @@
 import {Subscription, combineLatest, BehaviorSubject, Observable, of} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {map, switchMap} from "rxjs/operators";
+import {map, switchMap, tap} from "rxjs/operators";
 import {Router} from "@angular/router";
-import {CloudAppConfigService, CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
+import {CloudAppConfigService, CloudAppEventsService, CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {SetService} from "../services/apis/set.service";
 import {PostprocessService} from "../services/apis/postprocess.service";
-import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
+import {PhysicalItem, PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
-import {ReportService} from "../services/dataProcessing/report.service";
+import {ReportData, ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
@@ -32,11 +32,13 @@ interface CircDesk {
 
 interface ItemType {
     code: string;
+    name: string;
     count: number;
 }
 
 interface PolicyType {
     code: string;
+    name: string;
     count: number;
 }
 
@@ -48,37 +50,54 @@ interface PolicyType {
 export class ReportForm implements OnInit, OnDestroy {
     public inventoryForm: FormGroup;
 
-    public institutionLibraries: Library[] = [];
-    public scanLocations: ScanLocation[] = [];
-    public itemTypes: ItemType[] = [];
-    public policyTypes: PolicyType[] = [];
-    public circDesks: CircDesk[] = [];
+    // Final, merged dropdown lists.
+    public institutionLibrariesForDropdown: Library[] = [];
+    public scanLocationsForDropdown: ScanLocation[] = [];
+    public itemTypesForDropdown: ItemType[] = [];
+    public policyTypesForDropdown: PolicyType[] = [];
+    public circDesksForDropdown: CircDesk[] = [];
+
+    private librariesFromPhysicalItems: {
+        [key: string]: {
+            name: string;
+            count: number;
+        }
+    } = {};
+    private scanLocationsFromPhysicalItems: {
+        [key: string]: {
+            name: string;
+            count: number;
+        }
+    } = {};
+    private itemTypesFromPhysicalItems: {
+        [key: string]: {
+            name: string;
+            count: number;
+        }
+    } = {};
+    private policyTypesFromPhysicalItems: {
+        [key: string]: {
+            name: string;
+            count: number;
+        }
+    } = {};
 
     public reportLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
-    private filteredScanLocations: ScanLocation[] = [];
-
-    private reportCompleteSubscription: Subscription
-    private libraryCodeSubscription: Subscription;
-    private physicalItemsSubscription: Subscription
-    private postprocessSubscription: Subscription
-    private locationSubscription: Subscription;
-    private circDeskSubscription: Subscription;
-    private reportLoadingSubscription: Subscription;
-    private watchScanInSubscription: Subscription;
-    private watchOrderProblemsSubscription: Subscription;
-
     private markAsInventoriedField: string | null = null;
-    private libraryDict: { [key: string]: number } = {};
-    private locationDict: { [key: string]: number } = {};
-    private itemTypeDict: { [key: string]: number } = {};
-    private policyTypeDict: { [key: string]: number } = {};
+
+    // Subscriptions
+    private reportLoadingSubscription: Subscription
+    private enableCircDeskSubscription: Subscription;
+    private enableReportOnlyProblemsSubscription: Subscription;
+    private enablePostprocessSubscription: Subscription;
+    private reportSetupSubscription: Subscription;
 
     constructor(
         private restService: CloudAppRestService,
         private fb: FormBuilder,
         private bps: BarcodeParserService,
-        private prs: PhysicalItemInfoService,
+        private physicalItemInfoService: PhysicalItemInfoService,
         private iii: IndividualItemInfoService,
         private reportService: ReportService,
         public setService: SetService,
@@ -86,6 +105,7 @@ export class ReportForm implements OnInit, OnDestroy {
         private bes: BackupItemExportService,
         private router: Router,
         private configurationService: CloudAppConfigService,
+        private eventService: CloudAppEventsService
     ) {
     }
 
@@ -105,172 +125,43 @@ export class ReportForm implements OnInit, OnDestroy {
             circDesk: [null],
         });
 
+        // Set defaults for conditional options to disabled.
         this.inventoryForm.get("markAsInventoried").disable()
         this.inventoryForm.get("scanInItems").disable()
         this.inventoryForm.get("circDesk").disable()
         this.inventoryForm.get("reportOnlyProblems").disable()
 
-        this.watchScanInSubscription = this.inventoryForm.get("scanInItems").valueChanges.subscribe(scanIn => {
-            const circDeskInput = this.inventoryForm.get("circDesk");
-            if (scanIn) {
-                circDeskInput.enable()
-                circDeskInput.setValidators([Validators.required])
-            } else {
-                circDeskInput.clearValidators()
-                circDeskInput.disable()
-                circDeskInput.setValue(null)
+        // Set conditional options based on user inputs
+        this.enableCircDeskSubscription = this.inventoryForm.get("scanInItems").valueChanges.subscribe(value => this.enableOrDisableCircDeskInput(value))
+        this.enableReportOnlyProblemsSubscription = this.inventoryForm.get('limitOrderProblems').valueChanges.subscribe(value => this.enableOrDisableReportOnlyProblems(value))
+        this.enablePostprocessSubscription = this.configurationService.get().subscribe(value => this.enableOrDisablePostprocess(value))
+
+        // Parse Physical Items Information, for use in Autofill
+        this.reportSetupSubscription = this.eventService.getInitData().pipe(map(initData => {
+            // Get just the user data we want
+            return {
+                "isAdmin": initData.user.isAdmin,
+                "circDesk": initData.user.currentlyAtCircDesk
             }
-            circDeskInput.updateValueAndValidity()
-        })
-
-        // When the 'limitOrderProblems' value changes to onlyOther, enable 'reportOnlyProblems'
-        // When it is set to any other value, disable the field and set it to 'false'
-        this.watchOrderProblemsSubscription = this.inventoryForm.get('limitOrderProblems').valueChanges.subscribe(limitOrderProblem => {
-            if (limitOrderProblem === "onlyOther") {
-                this.inventoryForm.get("reportOnlyProblems").enable()
-            } else {
-                this.inventoryForm.get("reportOnlyProblems").setValue(false)
-                this.inventoryForm.get("reportOnlyProblems").disable()
-            }
-        })
-
-        this.postprocessSubscription = this.configurationService.get().subscribe(values => {
-            if (!values) {
-                console.log("Postprocess Not Configured - using defaults (disabled)")
-            } else {
-                if (values["inventoryField"] && values["inventoryField"] !== 'None' && values["inventoryField"] !== "undefined") {
-                    this.inventoryForm.get("markAsInventoried").enable()
-                    this.markAsInventoriedField = values["inventoryField"];
-                    console.log(`Marking Inventory Enabled - stored in ${values["inventoryField"]}`)
-                } else {
-                    this.markAsInventoriedField = null
+        }), switchMap(userSettings => {
+            // Add Physical Items Information
+            return this.physicalItemInfoService.getLatestPhysicalItems().pipe(map(physicalItems => {
+                return {
+                    ...userSettings,
+                    physicalItems
                 }
-                if (values["allowScanIn"]) {
-                    this.inventoryForm.get("scanInItems").enable()
-                    console.log(`Scanning In Items Enabled.`)
-                }
-
-            }
-        })
-
-        // Watch for changes to the library to pull the locations for that library
-        this.libraryCodeSubscription = this.inventoryForm
-            .get("library")
-            .valueChanges.subscribe((newLibraryCode) => {
-                this.scanLocations = [];
-                this.onSelectNewLibrary(newLibraryCode);
-            });
-
-        // Get the available libraries
-        this.restService
-            .call("/almaws/v1/conf/libraries")
-            .subscribe((libraryResponse) => {
-                this.institutionLibraries = this.parseLibraries(libraryResponse);
-                if (this.institutionLibraries[0].count > 0)
-                    this.inventoryForm.controls["library"].setValue(
-                        this.institutionLibraries[0].code
-                    );
-
-                // // Get the selected library
-                // this.eventsService.getInitData().subscribe(initData => {
-                //   console.log("At library", initData.user.currentlyAtLibCode)
-                //   this.inventoryForm.controls["library"].setValue(initData.user.currentlyAtLibCode)
-                // })
-            });
-
-        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(physicalItems => {
-            physicalItems.forEach((physicalItem) => {
-                if (physicalItem.library) {
-                    if (this.libraryDict.hasOwnProperty(physicalItem.library)) {
-                        this.libraryDict[physicalItem.library] += 1;
-                    } else {
-                        this.libraryDict[physicalItem.library] = 1;
-                    }
-                }
-
-                if (physicalItem.location) {
-                    if (this.locationDict.hasOwnProperty(physicalItem.location)) {
-                        this.locationDict[physicalItem.location] += 1;
-                    } else {
-                        this.locationDict[physicalItem.location] = 1;
-                    }
-                }
-
-                if (physicalItem.itemMaterialType) {
-                    if (this.itemTypeDict.hasOwnProperty(physicalItem.itemMaterialType)) {
-                        this.itemTypeDict[physicalItem.itemMaterialType] += 1;
-                    } else {
-                        this.itemTypeDict[physicalItem.itemMaterialType] = 1;
-                    }
-                }
-
-                if (physicalItem.policyType) {
-                    if (this.policyTypeDict.hasOwnProperty(physicalItem.policyType)) {
-                        this.policyTypeDict[physicalItem.policyType] += 1;
-                    } else {
-                        this.policyTypeDict[physicalItem.policyType] = 1;
-                    }
-                }
-            });
-            // Set the default item type - the one with the highest number of items
-            this.itemTypes = Object.entries(this.itemTypeDict).map(([code, count]) => {
-                return {code, count};
-            });
-            this.itemTypes.sort((a, b) => {
-                return b.count - a.count;
-            });
-            this.itemTypes.forEach(itemType => {
-                if (itemType.count >= 10) {
-                    (<string[]>this.inventoryForm.controls["expectedItemTypes"].value).push(`${itemType.code}`)
-                }
-            })
-
-            // Set the default policy type - the one with the highest number of items
-            this.policyTypes = Object.entries(this.policyTypeDict).map(
-                ([code, count]) => {
-                    return {code, count};
-                }
-            );
-            this.policyTypes.sort((a, b) => {
-                return b.count - a.count;
-            });
-            this.policyTypes.forEach(policyType => {
-                if (policyType.count >= 10) {
-                    (<string[]>this.inventoryForm.controls["expectedPolicyTypes"].value).push(`${policyType.code}`)
-                }
-            })
-        })
-    }
-
-    ngOnDestroy(): void {
-        this.libraryCodeSubscription.unsubscribe();
-        if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
-        if (this.circDeskSubscription) this.circDeskSubscription.unsubscribe()
-        if (this.locationSubscription) this.locationSubscription.unsubscribe()
-        if (this.reportLoadingSubscription) this.reportLoadingSubscription.unsubscribe()
-        this.physicalItemsSubscription.unsubscribe()
-        this.postprocessSubscription.unsubscribe()
-        this.watchScanInSubscription.unsubscribe()
-        this.watchOrderProblemsSubscription.unsubscribe()
-    }
-
-    public onBack(): void {
-        this.physicalItemsSubscription = this.prs.getLatestPhysicalItems().subscribe(items => {
-            this.prs.reset()
-            this.iii.reset()
-            this.bes.reset()
-            this.reportService.reset()
-            if(items[0].source == 'job') {
-                this.router.navigate(['/', 'job-results-input'])
-            } else {
-                this.router.navigate(['/'])
-            }
-        })
+            }))
+        }), tap(data => {
+            // Parse codes, names, and quantities for the dropdowns
+            this.parsePhysicalItemAutofillData(data.physicalItems)
+        }), tap(data => {
+            // Set dropdown displays
+            this.setDisplayLists(data.circDesk)
+        })).subscribe()
     }
 
     public onSubmit() {
         this.reportLoading$.next(true)
-        if (this.reportCompleteSubscription) this.reportCompleteSubscription.unsubscribe()
         const callNumberType = this.inventoryForm.get("callNumberType").value
         const library = this.inventoryForm.get("library").value
         const scanLocations = this.inventoryForm.get("scanLocations").value
@@ -284,7 +175,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.prs.getLatestPhysicalItems()]).pipe(map(values => {
+        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.physicalItemInfoService.getLatestPhysicalItems()]).pipe(map(values => {
             return {
                 scanDate: values[0],
                 physicalItems: values[1],
@@ -315,63 +206,158 @@ export class ReportForm implements OnInit, OnDestroy {
         })
     }
 
-    public onSelectNewLibrary(libraryCode: string) {
-        this.filteredScanLocations = []
-        this.scanLocations = []
-        this.circDesks = []
-        this.locationSubscription = this.restService
-            .call(`/almaws/v1/conf/libraries/${libraryCode}/locations`)
-            .subscribe((locationsData) => {
-                locationsData.location.forEach((location) => {
-                    let count = 0;
-                    if (this.locationDict.hasOwnProperty(location.code))
-                        count = this.locationDict[location.code];
-                    this.scanLocations.push({
-                        name: location.name,
-                        code: location.code,
-                        count,
-                    });
-                    this.filteredScanLocations = this.scanLocations.slice();
-                    this.filteredScanLocations.sort((a, b) => {
-                        return b.count - a.count;
-                    });
-                    if (this.filteredScanLocations[0].count > 0)
-                        this.inventoryForm.controls["scanLocations"].setValue(
-                            [this.filteredScanLocations[0].code]
-                        );
-                });
-            });
-
-        this.circDeskSubscription = this.restService.call(`/almaws/v1/conf/libraries/${libraryCode}/circ-desks`).subscribe(circDesksData => {
-            console.log(circDesksData)
-            circDesksData.circ_desk.forEach((circDesk) => {
-                this.circDesks.push({
-                    code: circDesk.code,
-                    name: circDesk.name
-                });
+    private setDisplayLists(circDesk: string) {
+        let libraryWithHighestCount = ""
+        for (let key of Object.keys(this.librariesFromPhysicalItems)) {
+            this.institutionLibrariesForDropdown.push({
+                code: key,
+                name: this.librariesFromPhysicalItems[key]['name'],
+                count: this.librariesFromPhysicalItems[key]['count']
             })
+            if (!libraryWithHighestCount) libraryWithHighestCount = key
+            if (libraryWithHighestCount && this.librariesFromPhysicalItems[key]['count'] > this.librariesFromPhysicalItems[libraryWithHighestCount]['count']) {
+                libraryWithHighestCount = key
+            }
+        }
+
+        this.inventoryForm.get('library').setValue(libraryWithHighestCount)
+
+        for (let mapping of [{
+            source: this.scanLocationsFromPhysicalItems,
+            dest: this.scanLocationsForDropdown,
+            control: "scanLocations"
+        }, {
+            source: this.itemTypesFromPhysicalItems,
+            dest: this.itemTypesForDropdown,
+            control: "expectedItemTypes"
+        }, {
+            source: this.policyTypesFromPhysicalItems,
+            dest: this.policyTypesForDropdown,
+            control: "expectedPolicyTypes"
+        }]) {
+            for (let key of Object.keys(mapping.source)) {
+                let itemCount = mapping.source[key]['count']
+                mapping.dest.push({
+                    code: key,
+                    name: mapping.source[key]['name'],
+                    count: itemCount
+                })
+                if (itemCount > 5) {
+                    const currentValue = this.inventoryForm.get(mapping.control).value || [];
+                    const newValue = [...currentValue, key];
+                    this.inventoryForm.get(mapping.control).setValue(newValue);
+                }
+            }
+        }
+    }
+
+    private parsePhysicalItemAutofillData(physicalItems: PhysicalItem[]) {
+        // Parse out the information needed to create dropdowns and such.
+        physicalItems.forEach(item => {
+            // Parse Library Info
+            const itemLibraryAlreadyAddedToDict = item.library in this.librariesFromPhysicalItems
+            if (!itemLibraryAlreadyAddedToDict) {
+                this.librariesFromPhysicalItems[item.library] = {
+                    count: 1,
+                    name: item.hasOwnProperty("libraryName") ? item.libraryName : null
+                }
+            } else {
+                this.librariesFromPhysicalItems[item.library].count += 1
+            }
+
+            // Parse Location Info
+            const itemLocationAlreadyAddedToDict = item.location in this.scanLocationsFromPhysicalItems
+            if (!itemLocationAlreadyAddedToDict) {
+                this.scanLocationsFromPhysicalItems[item.location] = {
+                    count: 1,
+                    name: item.hasOwnProperty("locationName") ? item.locationName : null,
+                }
+            } else {
+                this.scanLocationsFromPhysicalItems[item.location].count += 1
+            }
+
+            // Parse Item Type Info
+            const itemTypeAlreadyAddedToDict = item.itemMaterialType in this.itemTypesFromPhysicalItems
+            if (!itemTypeAlreadyAddedToDict) {
+                this.itemTypesFromPhysicalItems[item.itemMaterialType] = {
+                    count: 1,
+                    name: item.hasOwnProperty("itemMaterialTypeName") ? item.itemMaterialTypeName : null
+                }
+            } else {
+                this.itemTypesFromPhysicalItems[item.itemMaterialType].count += 1
+            }
+
+            // Parse Item Policy Info
+            const itemPolicyAlreadyAddedToDict = item.policyType in this.policyTypesFromPhysicalItems
+            if (!itemPolicyAlreadyAddedToDict) {
+                this.policyTypesFromPhysicalItems[item.policyType] = {
+                    count: 1,
+                    name: item.hasOwnProperty("policyTypeName") ? item.policyTypeName : null
+                }
+            } else {
+                this.policyTypesFromPhysicalItems[item.policyType].count += 1
+            }
         })
     }
 
-    private parseLibraries(libraryJson: any | undefined): Library[] {
-        const libraries: Library[] = [];
+    private enableOrDisablePostprocess(configurationSettings: object) {
+        if (!configurationSettings) {
+            console.log("Postprocess Not Configured - using defaults (disabled)")
+        } else {
+            const markAsInventoriedAllowed = configurationSettings["inventoryField"] && configurationSettings["inventoryField"] !== 'None' && configurationSettings["inventoryField"] !== "undefined"
+            if (markAsInventoriedAllowed) {
+                this.inventoryForm.get("markAsInventoried").enable()
+                this.markAsInventoriedField = configurationSettings["inventoryField"];
+                console.log(`Marking Inventory Allowed - stored in ${configurationSettings["inventoryField"]}`)
+            }
+            if (configurationSettings["allowScanIn"]) {
+                this.inventoryForm.get("scanInItems").enable()
+                console.log(`Scanning In Items Allowed.`)
+            }
+        }
+    }
 
-        libraryJson.library.forEach((library) => {
-            let count = 0;
-            if (this.libraryDict.hasOwnProperty(library.code))
-                count = this.libraryDict[library.code];
+    private enableOrDisableReportOnlyProblems(orderProblemLimit: string) {
+        if (orderProblemLimit === "onlyOther") {
+            this.inventoryForm.get("reportOnlyProblems").enable()
+        } else {
+            this.inventoryForm.get("reportOnlyProblems").setValue(false)
+            this.inventoryForm.get("reportOnlyProblems").disable()
+        }
+    }
 
-            libraries.push({
-                name: library.name,
-                code: library.code,
-                count,
-            });
-        });
+    private enableOrDisableCircDeskInput(scanInItems: boolean) {
+        const circDeskInput = this.inventoryForm.get("circDesk");
+        if (scanInItems) {
+            circDeskInput.enable()
+            circDeskInput.setValidators([Validators.required])
+        } else {
+            circDeskInput.clearValidators()
+            circDeskInput.disable()
+            circDeskInput.setValue(null)
+        }
+        circDeskInput.updateValueAndValidity()
+    }
 
-        libraries.sort((a, b) => {
-            return b.count - a.count;
-        });
+    public onBack(): void {
+        this.physicalItemInfoService.getLatestPhysicalItems().subscribe(items => {
+            this.physicalItemInfoService.reset()
+            this.iii.reset()
+            this.bes.reset()
+            this.reportService.reset()
+            if (items[0].source == 'job') {
+                this.router.navigate(['/', 'job-results-input'])
+            } else {
+                this.router.navigate(['/'])
+            }
+        })
+    }
 
-        return libraries;
+    ngOnDestroy(): void {
+        if (this.reportLoadingSubscription) this.reportLoadingSubscription.unsubscribe()
+        this.enableCircDeskSubscription.unsubscribe()
+        this.enableReportOnlyProblemsSubscription.unsubscribe()
+        this.enablePostprocessSubscription.unsubscribe()
+        this.reportSetupSubscription.unsubscribe()
     }
 }

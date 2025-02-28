@@ -259,26 +259,26 @@ export class ReportService {
             // Item SHOULD BE in temp location if Library or Location is wrong here.
             if (hasLibraryProblem || hasLocationProblem) {
                 item.hasProblem = true
-                item.hasTemporaryLocationProblem = `**Item should be in temp location ${item.location} in library ${item.library}**`
+                item.hasTemporaryLocationProblem = `**Item should be in temp location '${item.hasOwnProperty('locationName') ? item.locationName : item.location}' in library '${item.hasOwnProperty("libraryName") ? item.libraryName : item.library}'**`
                 return
             }
         }
 
         if (hasLocationProblem) {
             item.hasProblem = true
-            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}; expected any of [${locationCodes.join(", ")}]**`
+            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}${item.hasOwnProperty("locationName") ? " (" + item.locationName + ")": ""}; expected any of [${locationCodes.join(", ")}]**`
             item.hasOrderProblem = null
         }
 
         if (hasLibraryProblem) {
             item.hasProblem = true
-            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}; expected ${libraryCode}**`
+            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.hasOwnProperty("libraryName") ? item.libraryName : item.library}; expected ${libraryCode}**`
             item.hasOrderProblem = null
         }
 
         if (hasPolicyTypeProblem) {
             if (item.policyType != "") {
-                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}; expected ${expectedPolicyTypes}**`
+                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.hasOwnProperty("policyTypeName") ? item.policyTypeName : item.policyType}; expected ${expectedPolicyTypes}**`
             } else {
                 item.hasPolicyProblem = "**BLANK ITEM POLICY**"
             }
@@ -287,7 +287,7 @@ export class ReportService {
 
         if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
             if (item.itemMaterialType !== "") {
-                item.hasTypeProblem = `**WRONG TYPE: ${item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
+                item.hasTypeProblem = `**WRONG TYPE: ${item.hasOwnProperty("itemMaterialTypeName" ? item.itemMaterialTypeName : item.itemMaterialType)}; expected any of [${expectedItemTypes.join(", ")}]**`
             } else {
                 item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
             }
@@ -365,11 +365,23 @@ export class ReportService {
         }).map(item => {
             let reportCols: object = {
                 "Barcode": item.barcode,
-                "Correct Position": item.correctLocation ? item.correctLocation : "?",
-                "Actual Position": item.actualLocation,
+            }
+
+            if (reportData.sortBy === "correctOrder") {
+                reportCols = {
+                    ...reportCols,
+                    "Actual Position": item.actualLocation,
+                }
+            } else {
+                reportCols = {
+                    ...reportCols,
+                    "Correct Position": item.correctLocation ? item.correctLocation : "?",
+                }
+            }
+
+            reportCols = {
+                ...reportCols,
                 "Call Number": item.callNumber,
-                "Normalized Call Number": item.callSort,
-                "Description": item.description,
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
@@ -414,14 +426,11 @@ export class ReportService {
         // Set column widths
         worksheet['!cols'] = [
             {wch: 15},  // Barcode column width
-            {wch: 15},  // Correct Position column width
-            {wch: 15},  // Actual Position column width
+            {wch: 15},  // Correct / Actual Position column width
             {wch: 25},  // Call Number column width
-            {wch: 30},  // Normalized Call Number column width
-            {wch: 15},  // Normalized Description
             {wch: 58},  // Title column width
             {wch: 50},
-            {wch: 75},
+            {wch: 50},
         ];
 
         const workbook: XLSX.WorkBook = {

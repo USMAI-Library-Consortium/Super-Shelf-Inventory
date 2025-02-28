@@ -32,7 +32,7 @@
             <mat-form-field>
                 <mat-label>Library</mat-label>
                 <mat-select formControlName="library" onchange="">
-                    <mat-option *ngFor="let library of institutionLibraries" [value]="library.code">{{ library.name }}
+                    <mat-option *ngFor="let library of institutionLibrariesForDropdown" [value]="library.code">{{ library.name ? library.name : library.code }}
                         ({{ library.count }} items)
                     </mat-option>
                 </mat-select>
@@ -42,8 +42,8 @@
             <mat-form-field>
                 <mat-label>Scan Location(s)</mat-label>
                 <mat-select formControlName="scanLocations" multiple>
-                    <mat-option *ngFor="let scanLocation of scanLocations"
-                                [value]="scanLocation.code">{{ scanLocation.name }} ({{ scanLocation.count }} items)
+                    <mat-option *ngFor="let scanLocation of scanLocationsForDropdown"
+                                [value]="scanLocation.code">{{ scanLocation.name ? scanLocation.name : scanLocation.code }} ({{ scanLocation.count }} items)
                     </mat-option>
                 </mat-select>
             </mat-form-field>
@@ -52,7 +52,7 @@
             <mat-form-field>
                 <mat-label>Expected Item Type(s) for scanned location(s)</mat-label>
                 <mat-select formControlName="expectedItemTypes" multiple>
-                    <mat-option *ngFor="let itemType of itemTypes" [value]="itemType.code">{{ itemType.code }}
+                    <mat-option *ngFor="let itemType of itemTypesForDropdown" [value]="itemType.code">{{ itemType.name ? itemType.name : itemType.code }}
                         ({{ itemType.count }} items)
                     </mat-option>
                 </mat-select>
@@ -62,7 +62,7 @@
             <mat-form-field>
                 <mat-label>Expected Policy Type(s) for scanned location(s)</mat-label>
                 <mat-select formControlName="expectedPolicyTypes" multiple>
-                    <mat-option *ngFor="let policyType of policyTypes" [value]="policyType.code">{{ policyType.code }}
+                    <mat-option *ngFor="let policyType of policyTypesForDropdown" [value]="policyType.code">{{ policyType.name ? policyType.name : policyType.code }}
                         ({{ policyType.count }} items)
                     </mat-option>
                 </mat-select>
@@ -127,7 +127,7 @@
             <mat-form-field *ngIf="inventoryForm.get('scanInItems').value">
                 <mat-label>Circ Desk for Scan In Operation</mat-label>
                 <mat-select formControlName="circDesk">
-                    <mat-option *ngFor="let circDesk of circDesks" [value]="circDesk.code">
+                    <mat-option *ngFor="let circDesk of circDesksForDropdown" [value]="circDesk.code">
                         {{ circDesk.name }}
                     </mat-option>
                 </mat-select>
