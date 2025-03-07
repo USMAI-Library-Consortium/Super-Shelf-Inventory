@@ -28,7 +28,7 @@ export class BackupItemExportService {
     return this.restService.call(`/items?item_barcode=${barcode}`).pipe(map(result => {
       return this.extractItemDataFromAPIResponse(barcode, result)
     }), catchError(err => {
-      console.log(`API Error: ${err}`)
+      console.error(err)
       const item: PhysicalItem = {
         barcode,
         existsInAlma: false,
