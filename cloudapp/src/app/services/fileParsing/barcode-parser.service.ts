@@ -52,7 +52,7 @@ export class BarcodeParserService {
         return from(
             excelFile.arrayBuffer().then(
                 (data) => {
-                    const items: string[] = [];
+                    const items = new Set<string>();
                     const workbook = XLSX.read(data, {
                         type: "binary",
                     });
@@ -74,7 +74,7 @@ export class BarcodeParserService {
                         if (barcodeKey) {
                             barcode = row[barcodeKey];
                             if (barcode) {
-                                items.push(barcode);
+                                items.add(barcode);
                             }
                         } else {
                             this.alert.error(`No barcode column in file; found columns ${Object.keys(row).join(", ")}`);
@@ -82,8 +82,9 @@ export class BarcodeParserService {
                         }
                     });
 
-                    console.log(`${items.length} items parsed from excel file.`);
-                    return items;
+                    const itemsArray: string[] = Array.from(items)
+                    console.log(`${itemsArray} items parsed from excel file.`);
+                    return itemsArray;
                 },
                 (reason) => {
                     this.alert.error("Error in parsing excel file. Ensure it is valid.");
