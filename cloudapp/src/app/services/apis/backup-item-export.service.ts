@@ -1,89 +1,101 @@
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 import {CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
 import {BehaviorSubject, forkJoin, Observable, of} from "rxjs";
 import {PhysicalItem} from "../fileParsing/physical-item-info.service";
 import {catchError, map, retry, tap} from "rxjs/operators";
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root'
 })
 export class BackupItemExportService {
 
-  total = 0
-  complete = 0
+    total = 0
+    complete = 0
 
-  constructor(private restService: CloudAppRestService) { }
-
-  public pullItemData(barcodes: string[]): Observable<PhysicalItem[]> {
-    this.total = barcodes.length
-    const itemRequests = barcodes.map(barcode => {
-      return this.getItemInfo(barcode).pipe(tap(_ => this.complete++))
-    })
-
-    return forkJoin(itemRequests)
-  }
-
-  private getItemInfo(barcode: string): Observable<PhysicalItem> {
-    console.log(barcode)
-    return this.restService.call(`/items?item_barcode=${barcode}`).pipe(map(result => {
-      return this.extractItemDataFromAPIResponse(barcode, result)
-    }), catchError(err => {
-      console.error(err)
-      const item: PhysicalItem = {
-        barcode,
-        existsInAlma: false,
-        source: 'api',
-        title: null,
-        description: null,
-        mmsId: null,
-        holdingId: null,
-        pid: null,
-        callNumber: null,
-        library: null,
-        location: null,
-        policyType: null,
-        itemMaterialType: null,
-        status: null,
-        processType: null,
-        lastModifiedDate: null,
-        inTempLocation: null,
-        hasTempLocation: null,
-        requested: null
-      }
-      return of(item)
-    }))
-  }
-
-  public extractItemDataFromAPIResponse(barcode: string, response: object): PhysicalItem {
-    return {
-      barcode,
-      existsInAlma: true,
-      source: 'api',
-      title: response['bib_data']['title'],
-      description: response['item_data']['description'],
-      mmsId: response['bib_data']['mms_id'],
-      holdingId: response['holding_data']['holding_id'],
-      pid: response['item_data']['pid'],
-      callNumber: response['holding_data']['call_number'],
-      library: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_library']['value'] : response['item_data']['library']['value'],
-      libraryName: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_library']['desc'] : response['item_data']['library']['desc'],
-      location: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_location']['value'] : response['item_data']['location']['value'],
-      locationName: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_location']['desc'] : response['item_data']['location']['desc'],
-      policyType: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_policy']['value'] : response['item_data']['policy']['value'],
-      policyTypeName: response['holding_data']['in_temp_location'] ? response['holding_data']['temp_policy']['desc'] : response['item_data']['policy']['desc'],
-      itemMaterialType: response['item_data']['physical_material_type']['value'],
-      itemMaterialTypeName: response['item_data']['physical_material_type']['desc'],
-      status: response['item_data']['base_status'] == '0' ? "Item not in place" : "Item in place",
-      processType: response['item_data']['process_type'],
-      lastModifiedDate: response['item_data']['modification_date'],
-      inTempLocation: response['holding_data']['in_temp_location'],
-      hasTempLocation: null,
-      requested: response['item_data']['requested'],
+    constructor(private restService: CloudAppRestService) {
     }
-  }
 
-  public reset() {
-    this.complete = 0
-    this.total = 0
-  }
+    public pullItemData(barcodes: string[]): Observable<PhysicalItem[]> {
+        this.total = barcodes.length
+        const itemRequests = barcodes.map(barcode => {
+            return this.getItemInfo(barcode).pipe(tap(_ => this.complete++))
+        })
+
+        return forkJoin(itemRequests)
+    }
+
+    private getItemInfo(barcode: string): Observable<PhysicalItem> {
+        console.log(barcode)
+        return this.restService.call(`/items?item_barcode=${barcode}`).pipe(map(result => {
+            return this.extractItemDataFromAPIResponse(barcode, result)
+        }), catchError(err => {
+            console.error(err)
+            const item: PhysicalItem = {
+                barcode,
+                existsInAlma: false,
+                source: 'api',
+                title: null,
+                description: null,
+                mmsId: null,
+                holdingId: null,
+                pid: null,
+                callNumber: null,
+                library: null,
+                location: null,
+                policyType: null,
+                itemMaterialType: null,
+                status: null,
+                processType: null,
+                lastModifiedDate: null,
+                inTempLocation: null,
+                hasTempLocation: null,
+                requested: null
+            }
+            return of(item)
+        }))
+    }
+
+    private getActiveValue(inTempLocation: boolean, permanentValue: string | null, tempValue: string | null): string {
+        if (!inTempLocation) return permanentValue
+        if (tempValue) return tempValue
+        return permanentValue
+    };
+
+    public extractItemDataFromAPIResponse(barcode: string, response: object): PhysicalItem {
+        // Modified for type-safety with help from Claude 3.7 Sonnet
+        const inTempLocation = Boolean(response['holding_data']['in_temp_location']);
+
+        return {
+            barcode,
+            existsInAlma: true,
+            source: 'api',
+            title: response['bib_data']['title'] ?? null,
+            description: response['item_data']['description'] ?? null,
+            mmsId: response['bib_data']['mms_id'] ?? null,
+            holdingId: response['holding_data']['holding_id'] ?? null,
+            pid: response['item_data']['pid'] ?? null,
+            callNumber: response['holding_data']['call_number'] ?? null,
+            library: this.getActiveValue(inTempLocation, response['item_data']['library']?.['value'] ?? null, response['holding_data']['temp_library']?.['value'] ?? null),
+            libraryName: this.getActiveValue(inTempLocation, response['item_data']['library']?.['desc'] ?? null, response['holding_data']['temp_library']?.['desc'] ?? null),
+            location: this.getActiveValue(inTempLocation, response['item_data']['location']?.['value'] ?? null, response['holding_data']['temp_location']?.['value'] ?? null),
+            locationName: this.getActiveValue(inTempLocation, response['item_data']['location']?.['desc'] ?? null, response['holding_data']['temp_location']?.['desc'] ?? null),
+            policyType: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['value'] ?? null, response['holding_data']['temp_policy']?.['value'] ?? null),
+            policyTypeName: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['desc'] ?? null, response['holding_data']['temp_policy']?.['desc'] ?? null),
+            itemMaterialType: response['item_data']['physical_material_type']?.['value'] ?? null,
+            itemMaterialTypeName: response['item_data']['physical_material_type']?.['desc'] ?? null,
+            status: response['item_data']['base_status'] === '0'
+                ? "Item not in place"
+                : "Item in place",
+            processType: response['item_data']['process_type'] ?? null,
+            lastModifiedDate: response['item_data']['modification_date'] ?? null,
+            inTempLocation: inTempLocation,
+            hasTempLocation: null,
+            requested: response['item_data']['requested'] ?? false,
+        }
+    }
+
+    public reset() {
+        this.complete = 0
+        this.total = 0
+    }
 }
