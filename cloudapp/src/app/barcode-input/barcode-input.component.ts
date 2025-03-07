@@ -172,7 +172,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 }), catchError(err => {
                     // If there is an error with using the Jobs API, fall back to the
                     console.log(err)
-                    this.alert.warn("Error: Switching to API Mode...")
+                    this.alert.warn("The Jobs API does not work properly with Non-admins; switching to API Mode.")
                     this.mode = "api"
                     return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
                 }), switchMap(result => {
