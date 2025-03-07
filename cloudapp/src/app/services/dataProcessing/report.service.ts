@@ -382,6 +382,7 @@ export class ReportService {
             reportCols = {
                 ...reportCols,
                 "Call Number": item.callNumber,
+                "Description": item.description,
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
@@ -428,9 +429,10 @@ export class ReportService {
             {wch: 15},  // Barcode column width
             {wch: 15},  // Correct / Actual Position column width
             {wch: 25},  // Call Number column width
+            {wch: 25},  // Description column width
             {wch: 58},  // Title column width
-            {wch: 50},
-            {wch: 50},
+            {wch: 50},  // Order issues column width
+            {wch: 50},  // Other issues column width
         ];
 
         const workbook: XLSX.WorkBook = {
