@@ -317,26 +317,22 @@ export class ReportService {
             const previousItemIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum
             const nextItemIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum
 
-            const itemInCorrectRelativePosition = previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
-
             const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-            const isFirstItemOfBadSection = !previousItemIsAlreadyCorrect && nextItemIsAlreadyCorrect
-            const isLastItemOfBadSection = previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
             if (!itemIsInTheCorrectAbsolutePosition) {
-                // if (isFirstItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION START**; should be after '${correctPreviousItemCallNum}'`
-                // if (isLastItemOfBadSection) item.hasOrderProblem = `**OUT OF ORDER SECTION END**; next item should be '${correctNextItemCallNum}'`
-                if (!itemIsSerial) {
-                    // if (itemInCorrectRelativePosition) item.hasOrderProblem = "**Out Of Order section continued**"
-                    if (isRogueItem) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
-                } else {
+                if (itemIsSerial) {
                     if (sortSerialsByDescription) {
                         const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
                         const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
                         const isOutOfOrderWithinSerial = !previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect
                         if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' (${correctPreviousItemDescription}) and '${correctNextItemCallNum}' (${correctNextItemDescription})`
+                        item.hasProblem = true
                     }
                 }
-                item.hasProblem = true;
+            }
+
+            if (isRogueItem && !itemIsSerial) {
+                item.hasProblem = true
+                item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
             }
 
             if (itemIsSerial && !sortSerialsByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Serial Order Not Checked**" : "**Serial Order Not Checked**"
