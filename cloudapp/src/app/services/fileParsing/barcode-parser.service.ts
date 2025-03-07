@@ -62,20 +62,23 @@ export class BarcodeParserService {
                         workbook.Sheets[firstSheetName]
                     );
                     rows.forEach((row) => {
+                        // MODIFIED USING CLAUDE 3.7 SONNET
                         let barcode: string = null;
-                        if ("barcode" in row) {
-                            barcode = row["barcode"];
-                        } else if ("Barcode" in row) {
-                            barcode = row["Barcode"];
-                        } else if ("BARCODE" in row) {
-                            barcode = row["BARCODE"];
+
+                        // Find the first matching key using case-insensitive comparison and handle plurals
+                        const barcodeKey = Object.keys(row).find(key =>
+                            key.toLowerCase() === "barcode" ||
+                            key.toLowerCase() === "barcodes"
+                        );
+
+                        if (barcodeKey) {
+                            barcode = row[barcodeKey];
+                            if (barcode) {
+                                items.push(barcode);
+                            }
                         } else {
                             this.alert.error(`No barcode column in file; found columns ${Object.keys(row).join(", ")}`);
                             throw Error("Invalid Document.");
-                        }
-
-                        if (barcode) {
-                            items.push(barcode);
                         }
                     });
 
