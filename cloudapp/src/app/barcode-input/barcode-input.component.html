@@ -38,33 +38,13 @@
             </div>
 
             <!-- File Input -->
-            <mat-form-field class="inventory-form__field">
+            <mat-form-field class="inventory-form__field" style="width: 100%">
                 <mat-label>Scan Date</mat-label>
                 <input matInput [matDatepicker]="picker" formControlName="scanDate">
                 <mat-hint>MM/DD/YYYY</mat-hint>
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
             </mat-form-field>
-
-            <!-- Reuse data. Show only if there is a history of processing this file. -->
-            <div *ngIf="previousRun && mode === 'job'">
-                <app-run-info prefix="Previous" [runInfo]="previousRun"></app-run-info>
-                <p style="margin-top: .75rem; font-weight: bold;">
-                    Your file looks very similar to this previous run. To save 1 of your
-                    institution's 5 hourly runs, should we reuse this data?
-                </p>
-            </div>
-
-            <div class="inventory-form__field">
-                <label for="useCachedResultsInput">Reuse data?</label>
-                <mat-radio-group
-                        id="useCachedResultsInput"
-                        formControlName="useCachedResults"
-                >
-                    <mat-radio-button [value]="true">Yes</mat-radio-button>
-                    <mat-radio-button [value]="false">No</mat-radio-button>
-                </mat-radio-group>
-            </div>
 
             <div class="inventory-form__field">
                 <label for="useCachedResultsInput">Data Load Mode</label>
@@ -77,7 +57,27 @@
                 </mat-radio-group>
             </div>
 
-            <p *ngIf="!previousRun">
+            <!-- Reuse data. Show only if there is a history of processing this file. -->
+            <div *ngIf="previousRun && mode === 'job'">
+                <app-run-info prefix="Previous" [runInfo]="previousRun"></app-run-info>
+                <p style="margin-top: .75rem; font-weight: bold;">
+                    Your file looks very similar to this previous run. To save 1 of your
+                    institution's 5 hourly runs, should we reuse this data?
+                </p>
+            </div>
+
+            <div *ngIf="mode === 'job'" class="inventory-form__field">
+                <label for="useCachedResultsInput">Reuse data?</label>
+                <mat-radio-group
+                        id="useCachedResultsInput"
+                        formControlName="useCachedResults"
+                >
+                    <mat-radio-button [value]="true">Yes</mat-radio-button>
+                    <mat-radio-button [value]="false">No</mat-radio-button>
+                </mat-radio-group>
+            </div>
+
+            <p *ngIf="!previousRun || mode === 'api'">
                 Clicking 'Next' will load data from Alma. Loading may take a few minutes
             </p>
         </form>
