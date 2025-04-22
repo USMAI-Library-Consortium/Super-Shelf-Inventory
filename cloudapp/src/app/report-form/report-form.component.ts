@@ -3,13 +3,13 @@ import {Component, OnDestroy, OnInit} from "@angular/core";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {map, switchMap, tap} from "rxjs/operators";
 import {Router} from "@angular/router";
-import {CloudAppConfigService, CloudAppEventsService, CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
+import {CloudAppConfigService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {SetService} from "../services/apis/set.service";
 import {PostprocessService} from "../services/apis/postprocess.service";
 import {PhysicalItem, PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
-import {ReportData, ReportService} from "../services/dataProcessing/report.service";
+import {ReportService} from "../services/dataProcessing/report.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
@@ -94,7 +94,6 @@ export class ReportForm implements OnInit, OnDestroy {
     private reportSetupSubscription: Subscription;
 
     constructor(
-        private restService: CloudAppRestService,
         private fb: FormBuilder,
         private bps: BarcodeParserService,
         private physicalItemInfoService: PhysicalItemInfoService,
@@ -209,6 +208,8 @@ export class ReportForm implements OnInit, OnDestroy {
     private setDisplayLists(circDesk: string) {
         let libraryWithHighestCount = ""
         for (let key of Object.keys(this.librariesFromPhysicalItems)) {
+            if(!key || key === "null") continue;
+            console.log(key)
             this.institutionLibrariesForDropdown.push({
                 code: key,
                 name: this.librariesFromPhysicalItems[key]['name'],
@@ -236,6 +237,8 @@ export class ReportForm implements OnInit, OnDestroy {
             control: "expectedPolicyTypes"
         }]) {
             for (let key of Object.keys(mapping.source)) {
+                if(!key || key === "null") continue;
+                console.log(key)
                 let itemCount = mapping.source[key]['count']
                 mapping.dest.push({
                     code: key,
