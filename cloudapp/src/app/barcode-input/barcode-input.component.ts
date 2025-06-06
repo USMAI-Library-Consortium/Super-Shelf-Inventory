@@ -2,9 +2,8 @@ import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
-import {catchError, switchMap} from "rxjs/operators";
+import {switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
-
 import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
 import {SetService} from "../services/apis/set.service";
@@ -115,11 +114,11 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     }
                     this.loading$.next(false);
                 })
-                this.bps.setFileInfo({
+                this.bps.fileInfo = {
                     inputFileName: fileName,
                     firstBarcode: barcodes[0],
                     numberOfRecords: barcodes.length
-                })
+                }
             }, _ => {
                 this.barcodeForm.get("barcodeXLSXFile").setValue(null);
                 this.loading$.next(false);
@@ -169,39 +168,14 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 }), switchMap(almaSet => {
                     if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
                     else return this.ejs.runExportJob(almaSet)
-                }), catchError(err => {
-                    // If there is an error with using the Jobs API, fall back to the
-                    console.log(err)
-                    this.alert.warn("The Jobs API does not work properly with Non-admins; switching to API Mode.")
-                    this.mode = "api"
-                    return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
                 }), switchMap(result => {
-                    // Save the job run, if the job was run.
-                    if (result.hasOwnProperty("jobDate")) {
-                        return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
-                            // @ts-ignore
-                            // It will be an AlmaJob by now.
-                            return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId)
-                        }), switchMap(_ => of(result)))
-                    } else {
-                        // It is a physical item array here.
-                        return of(result)
-                    }
+                    return this.stateService.saveRun(this.bps.fileInfo.inputFileName, this.bps.fileInfo.numberOfRecords, this.bps.fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId).pipe(switchMap(_ => of(result)))
                 })).subscribe(result => {
-                    if (result.hasOwnProperty("jobDate")) {
-                        console.log("Navigating")
-                        this.router.navigate(["job-results-input"])
-                    } else {
-                        console.log("Setting Results...")
-                        // @ts-ignore
-                        this.piis.setLatestPhysicalItems(result)
-                        this.router.navigate(["configure-report"])
-                    }
-
+                    console.log("Navigating")
+                    this.router.navigate(["job-results-input"])
                 }, error => {
                     // Reset the component
                     console.log(error)
-                    this.mode = "job"
                     this.bps.reset()
                     this.ejs.reset()
                     this.setService.reset()

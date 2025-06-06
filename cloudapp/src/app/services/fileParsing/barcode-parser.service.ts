@@ -16,17 +16,9 @@ export interface FileInfo {
 export class BarcodeParserService {
     private barcodes$: BehaviorSubject<string[] | null> = new BehaviorSubject(null);
     private scanDate$: BehaviorSubject<string | null> = new BehaviorSubject(null);
-    private fileInfo$: BehaviorSubject<FileInfo | null> = new BehaviorSubject(null);
+    public fileInfo: FileInfo = null;
 
     constructor(private alert: AlertService) {
-    }
-
-    public getLatestFileInfo() {
-        return this.fileInfo$.pipe(filter(fileInfo => !!fileInfo), take(1));
-    }
-
-    public setFileInfo(fileInfo: FileInfo) {
-        this.fileInfo$.next(fileInfo);
     }
 
     public getLatestBarcodes(): Observable<string[]> {
