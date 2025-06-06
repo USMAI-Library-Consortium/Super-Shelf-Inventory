@@ -2,8 +2,9 @@ import {Component, OnDestroy, OnInit} from "@angular/core";
 import {Validators, FormBuilder, FormGroup} from "@angular/forms";
 import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
-import {switchMap} from "rxjs/operators";
+import {catchError, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
+
 import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
 import {SetService} from "../services/apis/set.service";
@@ -168,14 +169,38 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 }), switchMap(almaSet => {
                     if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
                     else return this.ejs.runExportJob(almaSet)
+                }), catchError(err => {
+                    // If there is an error with using the Jobs API, fall back to the API mode (fetching individual items).
+                    console.log(err)
+                    this.alert.warn("Error running Job - switching to API mode...")
+                    this.mode = "api"
+                    return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
                 }), switchMap(result => {
-                    return this.stateService.saveRun(this.bps.fileInfo.inputFileName, this.bps.fileInfo.numberOfRecords, this.bps.fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId).pipe(switchMap(_ => of(result)))
+                    // Save the job run, if the job was run.
+                    if (result.hasOwnProperty("jobDate")) {
+                        // It will be an Alma Job here
+                        // @ts-ignore
+                        return this.stateService.saveRun(this.bps.fileInfo.inputFileName, this.bps.fileInfo.numberOfRecords, this.bps.fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId).pipe(switchMap(_ => of(result)))
+                    } else {
+                        // It is a physical item array here, pulled from the backup item export.
+                        return of(result)
+                    }
                 })).subscribe(result => {
-                    console.log("Navigating")
-                    this.router.navigate(["job-results-input"])
+                    if (result.hasOwnProperty("jobDate")) {
+                        console.log("Navigating")
+                        this.router.navigate(["job-results-input"])
+                    } else {
+                        // Skip the results input, because we already have the data from the backup item
+                        // exporter which gets individual item info.
+                        console.log("Setting Results...")
+                        // @ts-ignore
+                        this.piis.setLatestPhysicalItems(result)
+                        this.router.navigate(["configure-report"])
+                    }
                 }, error => {
                     // Reset the component
                     console.log(error)
+                    this.mode = "job"
                     this.bps.reset()
                     this.ejs.reset()
                     this.setService.reset()
