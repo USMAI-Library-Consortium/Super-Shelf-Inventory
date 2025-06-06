@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
-import {catchError, filter, map, take, tap} from "rxjs/operators";
+import {forkJoin, Observable, of, Subject} from "rxjs";
+import {catchError, map, tap} from "rxjs/operators";
 import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {AlmaSet} from "./set.service";
@@ -29,25 +29,26 @@ export interface MarkAsInventoriedJob extends AlmaJob {
 
 export class PostprocessService {
     public scanInJobProgress$: Subject<ScanInJobProgress> = new Subject();
+    public markAsInventoriedStarted$: Subject<MarkAsInventoriedJob> = new Subject();
 
-    private scanInDone$: BehaviorSubject<ScanInResults | null> = new BehaviorSubject(null);
-    private markAsInventoriedStarted$: BehaviorSubject<MarkAsInventoriedJob | null> = new BehaviorSubject(null);
+    private scanInResults: ScanInResults = null
+    private markAsInventoriedJob: MarkAsInventoriedJob = null;
 
     constructor(private restService: CloudAppRestService,
                 private alert: AlertService) {
     }
 
-    public getLatestScanInResults(): Observable<ScanInResults> {
-        return this.scanInDone$.pipe(filter(scanInResults => !!scanInResults), take(1))
+    public getScanInResults(): ScanInResults {
+        return this.scanInResults
     }
 
-    public getLatestMarkAsInventoriedStarted(): Observable<MarkAsInventoriedJob> {
-        return this.markAsInventoriedStarted$.pipe(filter(job => !!job), take(1))
+    public getMarkAsInventoriedJob(): MarkAsInventoriedJob {
+        return this.markAsInventoriedJob
     }
 
     public reset() {
-        this.scanInDone$.next(null);
-        this.markAsInventoriedStarted$.next(null);
+        this.scanInResults = null
+        this.markAsInventoriedJob = null
     }
 
     public scanInItems(physicalItems: ProcessedPhysicalItem[], library: string, circDesk: string): Observable<ScanInResults> {
@@ -88,13 +89,12 @@ export class PostprocessService {
         return forkJoin(requests).pipe(map(results => {
             const successful = results.filter(Boolean).length
             const failed = results.length - successful
-            return {
+            this.scanInResults = {
                 successful,
                 failed,
                 wasRun: true
             }
-        }), tap(result => {
-            this.scanInDone$.next(result)
+            return this.scanInResults
         }))
     }
 
@@ -128,13 +128,14 @@ export class PostprocessService {
                 })
             }),
             tap(result => {
-                this.markAsInventoriedStarted$.next(result)
+                this.markAsInventoriedJob = result
+                this.markAsInventoriedStarted$.next(result) // This is used for real-time display
             }))
     }
 
     private getRequestBody(inventoryField: string, formattedScanDate: string, scanDate: string, set: AlmaSet) {
         const timestamp = new Date(scanDate).getTime()
-        const job = `<job>
+        return `<job>
                             <parameters>
                                 <parameter>
                                     <name>IS_MAGNETIC_condition</name>
@@ -824,7 +825,5 @@ export class PostprocessService {
                         </job>
 
             `
-        console.log(job)
-        return job;
     }
 }
