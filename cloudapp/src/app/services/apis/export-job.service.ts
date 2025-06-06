@@ -24,22 +24,22 @@ interface DataExportJobProgress {
 })
 export class ExportJobService {
     public dataExportJobProgress$: Subject<DataExportJobProgress> = new Subject();
-    private job$: BehaviorSubject<AlmaJob | null> = new BehaviorSubject(null);
+    private job: AlmaJob = null
     private parsedPhysicalItems$: BehaviorSubject<PhysicalItem[] | null> = new BehaviorSubject(null)
 
     constructor(private restService: CloudAppRestService) {
     }
 
-    public getLatestRunInfo() {
-        return this.job$.pipe(filter(jobOutput => !!jobOutput), take(1))
+    public getJob() {
+        return this.job
     }
 
     public usePreviousRun(previousRunInfo: AlmaJob) {
-        this.job$.next(previousRunInfo);
+        this.job = previousRunInfo
     }
 
     public runExportJob(set: AlmaSet): Observable<AlmaJob> {
-        this.job$.next(null)
+        this.job = null
         return this.restService
             .call({
                 url: "/conf/jobs/M48?op=run",
@@ -96,7 +96,7 @@ export class ExportJobService {
         return this.checkJobProgress(job.dataExtractUrl, job.jobId).pipe(map(result => {
             return job
         }), tap(almaJob => {
-            this.job$.next(almaJob);
+            this.job = almaJob
         }));
     }
 
@@ -240,7 +240,7 @@ export class ExportJobService {
     }
 
     reset() {
-        this.job$.next(null)
+        this.job = null
         this.parsedPhysicalItems$.next(null)
     }
 }

@@ -16,7 +16,7 @@
             Next
         </button>
     </div>
-    <div *ngIf="this.ejs.getLatestRunInfo() | async as jobOutput">
+    <div *ngIf="this.ejs.getJob() as jobOutput">
         <app-run-info [minimized]="true" [runInfo]="jobOutput"></app-run-info>
         <p style=" margin-top: .5rem;">Please download the following report from Alma and then upload it here.</p>
         <p>Please pin this Cloud App or switch to a different Alma window before downloading this report, otherwise the
