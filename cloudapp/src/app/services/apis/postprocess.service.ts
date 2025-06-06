@@ -8,7 +8,7 @@ import {AlmaJob} from "./export-job.service";
 import {ProcessedPhysicalItem} from "../dataProcessing/report.service";
 
 
-interface ScanInResults {
+export interface ScanInResults {
     wasRun: boolean,
     successful: number,
     failed: number
@@ -19,7 +19,7 @@ interface ScanInJobProgress {
     total: number
 }
 
-interface MarkAsInventoriedJob extends AlmaJob {
+export interface MarkAsInventoriedJob extends AlmaJob {
     markAsInventoriedField: string
 }
 

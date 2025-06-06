@@ -1,7 +1,4 @@
 import {Injectable} from '@angular/core';
-import * as Papa from 'papaparse'
-import {BehaviorSubject, Observable} from 'rxjs';
-import {filter, take} from "rxjs/operators";
 
 export interface PhysicalItem {
     barcode: string,
@@ -35,22 +32,12 @@ export interface PhysicalItem {
     providedIn: 'root'
 })
 export class PhysicalItemInfoService {
-    private physicalItems$: BehaviorSubject<PhysicalItem[] | null> = new BehaviorSubject(null)
+    public physicalItems: PhysicalItem[] = null
 
     constructor() {
     }
 
-    public getLatestPhysicalItems() {
-        return this.physicalItems$.pipe(filter(physicalItems => {
-            return physicalItems instanceof Array
-        }), take(1))
-    }
-
-    public setLatestPhysicalItems(physicalItems: PhysicalItem[]) {
-        this.physicalItems$.next(physicalItems)
-    }
-
     public reset() {
-        this.physicalItems$.next(null)
+        this.physicalItems = null
     }
 }

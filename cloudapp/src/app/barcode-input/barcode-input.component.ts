@@ -138,7 +138,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         if (mode === "api") {
             this.dataLoadRunning$.next(true)
             this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()).subscribe(items => {
-                this.piis.setLatestPhysicalItems(items)
+                this.piis.physicalItems = items
                 this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
@@ -191,7 +191,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                         // exporter which gets individual item info.
                         console.log("Setting Results...")
                         // @ts-ignore
-                        this.piis.setLatestPhysicalItems(result)
+                        this.piis.physicalItems = result
                         this.router.navigate(["configure-report"])
                     }
                 }, error => {

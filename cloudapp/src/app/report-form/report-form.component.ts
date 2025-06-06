@@ -6,7 +6,7 @@ import {Router} from "@angular/router";
 import {CloudAppConfigService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {SetService} from "../services/apis/set.service";
-import {PostprocessService} from "../services/apis/postprocess.service";
+import {MarkAsInventoriedJob, PostprocessService, ScanInResults} from "../services/apis/postprocess.service";
 import {PhysicalItem, PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
@@ -142,20 +142,12 @@ export class ReportForm implements OnInit, OnDestroy {
                 "isAdmin": initData.user.isAdmin,
                 "circDesk": initData.user.currentlyAtCircDesk
             }
-        }), switchMap(userSettings => {
-            // Add Physical Items Information
-            return this.physicalItemInfoService.getLatestPhysicalItems().pipe(map(physicalItems => {
-                return {
-                    ...userSettings,
-                    physicalItems
-                }
-            }))
-        }), tap(data => {
+        }), tap(_ => {
             // Parse codes, names, and quantities for the dropdowns
-            this.parsePhysicalItemAutofillData(data.physicalItems)
-        }), tap(data => {
+            this.parsePhysicalItemAutofillData(this.physicalItemInfoService.physicalItems)
+        }), tap(userSettings => {
             // Set dropdown displays
-            this.setDisplayLists(data.circDesk)
+            this.setDisplayLists(userSettings.circDesk)
         })).subscribe()
     }
 
@@ -174,23 +166,30 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = this.physicalItemInfoService.getLatestPhysicalItems().pipe(map(physicalItems => {
-            return this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, this.bps.scanDate, physicalItems)
-        }), switchMap(report => {
-            const postProcessJobs: Observable<any>[] = []
-            if (markAsInventoried) {
-                const barcodes: string[] = report.unsortedItems.map(item => item.barcode)
-                const markAsInventoriedProcess = this.setService.getLatestSetInfoOrCreateSet(barcodes).pipe(switchMap(setInfo => {
-                    return this.postProcessService.markAsInventoried(markAsInventoried, this.bps.scanDate, setInfo)
-                }))
-                postProcessJobs.push(markAsInventoriedProcess)
-            }
-            if (scanInItems) postProcessJobs.push(this.postProcessService.scanInItems(report.unsortedItems, library, circDesk))
+        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
 
-            return postProcessJobs.length > 0 ? combineLatest(postProcessJobs) : of([])
-        })).subscribe(_ => {
+        let markAsInventoriedJob: Observable<MarkAsInventoriedJob> = null
+        if (markAsInventoried) {
+            const barcodes: string[] = report.unsortedItems.map(item => item.barcode)
+            markAsInventoriedJob = this.setService.getLatestSetInfoOrCreateSet(barcodes).pipe(switchMap(setInfo => {
+                return this.postProcessService.markAsInventoried(markAsInventoried, this.bps.scanDate, setInfo)
+            }))
+        }
+
+        let scanInItemsJob: Observable<ScanInResults> = null
+        if (scanInItems) scanInItemsJob = this.postProcessService.scanInItems(report.unsortedItems, library, circDesk)
+
+        if (markAsInventoriedJob || scanInItemsJob) {
+            const jobs: Observable<any>[] = []
+            if (markAsInventoriedJob) jobs.push(markAsInventoriedJob)
+            if (scanInItemsJob) jobs.push(scanInItemsJob)
+
+            this.reportLoadingSubscription = combineLatest(jobs).subscribe(_ => {
+                this.router.navigate(['results'])
+            })
+        } else {
             this.router.navigate(['results'])
-        })
+        }
     }
 
     private setDisplayLists(circDesk: string) {
@@ -332,17 +331,16 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     public onBack(): void {
-        this.physicalItemInfoService.getLatestPhysicalItems().subscribe(items => {
-            this.physicalItemInfoService.reset()
-            this.iii.reset()
-            this.bes.reset()
-            this.reportService.reset()
-            if (items[0].source == 'job') {
-                this.router.navigate(['/', 'job-results-input'])
-            } else {
-                this.router.navigate(['/'])
-            }
-        })
+        const dataSource = this.physicalItemInfoService.physicalItems[0].source
+        this.physicalItemInfoService.reset()
+        this.iii.reset()
+        this.bes.reset()
+        this.reportService.reset()
+        if (dataSource == 'job') {
+            this.router.navigate(['/', 'job-results-input'])
+        } else {
+            this.router.navigate(['/'])
+        }
     }
 
     ngOnDestroy(): void {
