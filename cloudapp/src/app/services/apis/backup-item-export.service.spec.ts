@@ -267,7 +267,7 @@ const test_item_in_temp_location = {
         "type_of_unit": "",
         "receiving_operator": "import",
         "process_type": {
-            "value": ""
+            "value": "Work Order"
         },
         "inventory_number": "",
         "inventory_price": "50.00",
@@ -323,6 +323,20 @@ describe('IndividualItemInfoService', () => {
 
             expect(parsed_data.inTempLocation).toBeTruthy()
             expect(parsed_data.library).toBe("SU-SU");
+        })
+
+        it('Should parse status correctly', () => {
+            const parsed_data = service.extractItemDataFromAPIResponse("1245362362", test_item_in_temp_location)
+            expect(parsed_data).toBeTruthy();
+
+            expect(parsed_data.status).toBe("Item in place")
+        })
+
+        it('Should parse process type', () => {
+            const parsed_data = service.extractItemDataFromAPIResponse("1245362362", test_item_in_temp_location)
+            expect(parsed_data).toBeTruthy();
+
+            expect(parsed_data.processType).toBe("Work Order")
         })
     })
 });

@@ -83,10 +83,8 @@ export class BackupItemExportService {
             policyTypeName: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['desc'] ?? null, response['holding_data']['temp_policy']?.['desc'] ?? null),
             itemMaterialType: response['item_data']['physical_material_type']?.['value'] ?? null,
             itemMaterialTypeName: response['item_data']['physical_material_type']?.['desc'] ?? null,
-            status: response['item_data']['base_status'] === '0'
-                ? "Item not in place"
-                : "Item in place",
-            processType: response['item_data']['process_type'] ?? null,
+            status: response['item_data']['base_status']['desc'],
+            processType: response['item_data']['process_type']?.['value'] ?? null,
             lastModifiedDate: response['item_data']['modification_date'] ?? null,
             inTempLocation: inTempLocation,
             hasTempLocation: null,
