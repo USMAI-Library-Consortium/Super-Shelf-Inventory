@@ -174,7 +174,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = this.physicalItemInfoService.getLatestPhysicalItems().pipe(switchMap(physicalItems => {
+        this.reportLoadingSubscription = this.physicalItemInfoService.getLatestPhysicalItems().pipe(map(physicalItems => {
             return this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, this.bps.scanDate, physicalItems)
         }), switchMap(report => {
             const postProcessJobs: Observable<any>[] = []

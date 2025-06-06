@@ -1,8 +1,7 @@
 import {Injectable} from "@angular/core";
-import {PhysicalItemInfoService, PhysicalItem} from "../fileParsing/physical-item-info.service";
-import {Observable, ReplaySubject, Subscription} from "rxjs";
+import {PhysicalItem} from "../fileParsing/physical-item-info.service";
+import {Subscription} from "rxjs";
 import * as XLSX from 'xlsx';
-import {filter, take} from "rxjs/operators";
 import {CallNumberService} from "./call-number.service";
 
 export interface ProcessedPhysicalItem extends PhysicalItem {
@@ -50,21 +49,19 @@ export interface ReportData {
     providedIn: "root",
 })
 export class ReportService {
-    reportProcessed$: ReplaySubject<ReportData | null> = new ReplaySubject(1)
+    private report: ReportData = null;
     physicalItemsSubscription: Subscription = null
 
-    constructor(private prs: PhysicalItemInfoService, private callNumberService: CallNumberService) {
+    constructor(private callNumberService: CallNumberService) {
     }
 
-    getLatestReport() {
-        return this.reportProcessed$.pipe(filter(value => {
-            return value !== null
-        }), take(1))
+    public getReport() {
+        return this.report;
     }
 
     reset() {
         if (this.physicalItemsSubscription) this.physicalItemsSubscription.unsubscribe()
-        this.reportProcessed$.next(null)
+        this.report = null;
     }
 
     generateReport(
@@ -80,8 +77,8 @@ export class ReportService {
         circDeskCode: string | null,
         scanDate: string,
         physicalItems: PhysicalItem[]
-    ): Observable<ReportData> {
-        this.reportProcessed$.next(null)
+    ): ReportData {
+        this.report = null
         const unsorted: ProcessedPhysicalItem[] = []
 
         physicalItems.map((physicalItem: PhysicalItem) => {
@@ -178,7 +175,7 @@ export class ReportService {
         const firstCallNum = firstItem.callNumber.replace(".", "").replace(" ", "")
         const lastCallNum = lastItem.callNumber.replace(".", "").replace(" ", "")
         const outputFilename = `Shelflist_${libraryCode}_${locationCodes.join("_")}_${firstCallNum.substring(0, 4)}_${lastCallNum.substring(0, 4)}_${new Date().toISOString().slice(0, 10)}.xlsx`
-        this.reportProcessed$.next({
+        this.report = {
             outputFilename,
             sortBy,
             library: libraryCode,
@@ -197,9 +194,8 @@ export class ReportService {
             lastCallNum,
             unsortedItems: unsorted,
             sortedItems: sorted
-        })
-
-        return this.getLatestReport()
+        }
+        return this.report
     }
 
     protected getProblemCounts(orderProblemLimit: string, items: ProcessedPhysicalItem[]) {

@@ -5,7 +5,7 @@
     <button mat-flat-button color="primary" (click)="onSubmit()">Done</button>
 </div>
 
-<div *ngIf="this.reportService.getLatestReport() | async as reportData" class="results-container">
+<div *ngIf="this.reportService.getReport() as reportData" class="results-container">
     <h2>Run Results</h2>
     <div class="results-container__download-container">
         <p>Download Report</p>

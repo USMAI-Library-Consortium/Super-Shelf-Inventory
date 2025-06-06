@@ -32,14 +32,12 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
 
     onSubmit() {
-        this.reportService.getLatestReport().subscribe(data => {
-            this.reportService.reset()
-            this.iii.reset()
-            this.bes.reset()
-            this.prs.reset()
-            this.postprocessService.reset()
-            this.router.navigate(['/'])
-        })
+        this.reportService.reset()
+        this.iii.reset()
+        this.bes.reset()
+        this.prs.reset()
+        this.postprocessService.reset()
+        this.router.navigate(['/'])
     }
 
     onBack() {
@@ -49,10 +47,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
 
     downloadReport() {
-        this.reportDataSubscription = this.reportService.getLatestReport().subscribe(
-            result => {
-                this.reportService.generateAndDownloadExcel(result)
-            }
-        )
+        this.reportService.generateAndDownloadExcel(this.reportService.getReport())
     }
 }
