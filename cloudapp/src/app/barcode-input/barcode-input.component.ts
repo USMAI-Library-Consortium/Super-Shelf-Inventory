@@ -137,7 +137,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
         if (mode === "api") {
             this.dataLoadRunning$.next(true)
-            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes))).subscribe(items => {
+            this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()).subscribe(items => {
                 this.piis.setLatestPhysicalItems(items)
                 this.router.navigate(["configure-report"])
             }, error => {
@@ -163,9 +163,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 this.router.navigate(["job-results-input"])
             } else {
                 this.dataLoadRunning$.next(true)
-                this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
-                    return this.setService.createSet(barcodes)
-                }), switchMap(almaSet => {
+                this.loadDataSubscription = this.setService.createSet(this.bps.getBarcodes()).pipe(switchMap(almaSet => {
                     if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
                     else return this.ejs.runExportJob(almaSet)
                 }), catchError(err => {
@@ -173,7 +171,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     console.log(err)
                     this.alert.warn("Error running Job - switching to API mode...")
                     this.mode = "api"
-                    return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
+                    return this.bies.pullItemData(this.bps.getBarcodes())
                 }), switchMap(result => {
                     // Save the job run, if the job was run.
                     if (result.hasOwnProperty("jobDate")) {

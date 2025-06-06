@@ -76,9 +76,7 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     onFileSelect(event: Event) {
         this.ready$.next(false)
         const input = event.target as HTMLInputElement;
-        this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
-            return this.ejs.parseReport(input.files[0], barcodes)
-        }), tap(physicalItems => this.piis.setLatestPhysicalItems(physicalItems))).subscribe(_ => {
+        this.loadDataSubscription = this.ejs.parseReport(input.files[0], this.bps.getBarcodes()).pipe(tap(physicalItems => this.piis.setLatestPhysicalItems(physicalItems))).subscribe(_ => {
             this.ready$.next(true);
         }, err => {
             this.ready$.next(false);
