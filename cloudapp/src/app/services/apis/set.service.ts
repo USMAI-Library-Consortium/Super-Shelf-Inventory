@@ -50,13 +50,6 @@ export class SetService {
         }))
     }
 
-    public getLatestSetInfo() {
-        return this.setInfo$.pipe(filter(result => {
-            return !!result
-        }), take(1))
-
-    }
-
     private createBaseSet(): Observable<AlmaSet> {
         this.createBaseSetProgress$.next("Started...")
         const {setName, newSet} = this.generateBaseSetBody();

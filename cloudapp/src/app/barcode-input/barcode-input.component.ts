@@ -115,11 +115,11 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     }
                     this.loading$.next(false);
                 })
-                this.bps.setFileInfo({
+                this.bps.fileInfo = {
                     inputFileName: fileName,
                     firstBarcode: barcodes[0],
                     numberOfRecords: barcodes.length
-                })
+                }
             }, _ => {
                 this.barcodeForm.get("barcodeXLSXFile").setValue(null);
                 this.loading$.next(false);
@@ -131,15 +131,14 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
     public onSubmit() {
         const useCachedResults: boolean = this.barcodeForm.get("useCachedResults").value
-        const scanDate: string = this.barcodeForm.get("scanDate").value
-        this.bps.setScanDate(scanDate)
+        this.bps.scanDate = this.barcodeForm.get("scanDate").value
 
         const mode: string = this.barcodeForm.get("mode").value
 
         if (mode === "api") {
             this.dataLoadRunning$.next(true)
-            this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes))).subscribe(items => {
-                this.piis.setLatestPhysicalItems(items)
+            this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()).subscribe(items => {
+                this.piis.physicalItems = items
                 this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
@@ -164,27 +163,23 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 this.router.navigate(["job-results-input"])
             } else {
                 this.dataLoadRunning$.next(true)
-                this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
-                    return this.setService.createSet(barcodes)
-                }), switchMap(almaSet => {
+                this.loadDataSubscription = this.setService.createSet(this.bps.getBarcodes()).pipe(switchMap(almaSet => {
                     if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
                     else return this.ejs.runExportJob(almaSet)
                 }), catchError(err => {
-                    // If there is an error with using the Jobs API, fall back to the
+                    // If there is an error with using the Jobs API, fall back to the API mode (fetching individual items).
                     console.log(err)
-                    this.alert.warn("The Jobs API does not work properly with Non-admins; switching to API Mode.")
+                    this.alert.warn("Error running Job - switching to API mode...")
                     this.mode = "api"
-                    return this.bps.getLatestBarcodes().pipe(switchMap(barcodes => this.bies.pullItemData(barcodes)))
+                    return this.bies.pullItemData(this.bps.getBarcodes())
                 }), switchMap(result => {
                     // Save the job run, if the job was run.
                     if (result.hasOwnProperty("jobDate")) {
-                        return this.bps.getLatestFileInfo().pipe(switchMap(fileInfo => {
-                            // @ts-ignore
-                            // It will be an AlmaJob by now.
-                            return this.stateService.saveRun(fileInfo.inputFileName, fileInfo.numberOfRecords, fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId)
-                        }), switchMap(_ => of(result)))
+                        // It will be an Alma Job here
+                        // @ts-ignore
+                        return this.stateService.saveRun(this.bps.fileInfo.inputFileName, this.bps.fileInfo.numberOfRecords, this.bps.fileInfo.firstBarcode, result.jobDate, result.dataExtractUrl, result.jobId).pipe(switchMap(_ => of(result)))
                     } else {
-                        // It is a physical item array here.
+                        // It is a physical item array here, pulled from the backup item export.
                         return of(result)
                     }
                 })).subscribe(result => {
@@ -192,12 +187,13 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                         console.log("Navigating")
                         this.router.navigate(["job-results-input"])
                     } else {
+                        // Skip the results input, because we already have the data from the backup item
+                        // exporter which gets individual item info.
                         console.log("Setting Results...")
                         // @ts-ignore
-                        this.piis.setLatestPhysicalItems(result)
+                        this.piis.physicalItems = result
                         this.router.navigate(["configure-report"])
                     }
-
                 }, error => {
                     // Reset the component
                     console.log(error)

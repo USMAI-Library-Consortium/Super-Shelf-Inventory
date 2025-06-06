@@ -7,7 +7,7 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
-import {switchMap, tap} from "rxjs/operators";
+import {switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 import {SetService} from "../services/apis/set.service";
 
@@ -51,12 +51,14 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
 
     onSubmit() {
         this.loading$.next(true)
-        this.loadDataSubscription = this.piis.getLatestPhysicalItems().pipe(switchMap(items => {
+        this.loadDataSubscription = of(this.piis.physicalItems).pipe(switchMap(items => {
+            // Pull whether Temp Locations are active if the data source is from the Export Job
             if (items[0].source === 'job') {
                 return this.iii.pullTempLocationItemInfo(items)
             }
             return of(items)
-        }), tap(items => this.piis.setLatestPhysicalItems(items))).subscribe(_ => {
+        })).subscribe(physicalItemsWithTempLocation => {
+            this.piis.physicalItems = physicalItemsWithTempLocation
             this.loading$.next(false);
             this.router.navigate(["configure-report"])
         }, err => {
@@ -76,9 +78,8 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     onFileSelect(event: Event) {
         this.ready$.next(false)
         const input = event.target as HTMLInputElement;
-        this.loadDataSubscription = this.bps.getLatestBarcodes().pipe(switchMap(barcodes => {
-            return this.ejs.parseReport(input.files[0], barcodes)
-        }), tap(physicalItems => this.piis.setLatestPhysicalItems(physicalItems))).subscribe(_ => {
+        this.loadDataSubscription = this.ejs.parseReport(input.files[0], this.bps.getBarcodes()).subscribe(physicalItems => {
+            this.piis.physicalItems = physicalItems
             this.ready$.next(true);
         }, err => {
             this.ready$.next(false);

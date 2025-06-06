@@ -5,7 +5,7 @@
     <button mat-flat-button color="primary" (click)="onSubmit()">Done</button>
 </div>
 
-<div *ngIf="this.reportService.getLatestReport() | async as reportData" class="results-container">
+<div *ngIf="this.reportService.getReport() as reportData" class="results-container">
     <h2>Run Results</h2>
     <div class="results-container__download-container">
         <p>Download Report</p>
@@ -25,15 +25,15 @@
         <p>Item Type Issues: {{ reportData.typeProblemCount }}</p>
     </span>
     <br>
-    <div *ngIf="((postprocessService.getLatestScanInResults() | async) || (postprocessService.getLatestMarkAsInventoriedStarted() | async))">
+    <div *ngIf="((postprocessService.getScanInResults()) || (postprocessService.getMarkAsInventoriedJob()))">
         <h2>Post Processing Results</h2>
-        <div *ngIf="(postprocessService.getLatestScanInResults() | async) as scanInResults">
+        <div *ngIf="postprocessService.getScanInResults() as scanInResults">
             <p>Items Scanned
                 In: {{ scanInResults.successful }} {{ scanInResults.wasRun ? '' : '(not run)' }}</p>
             <p>Items Failed Scanned
                 In: {{ scanInResults.failed }} {{ scanInResults.wasRun ? '' : '(not run)' }}</p>
         </div>
-        <div *ngIf="postprocessService.getLatestMarkAsInventoriedStarted() | async as postprocessResults">
+        <div *ngIf="postprocessService.getMarkAsInventoriedJob() as postprocessResults">
             <p *ngIf="postprocessResults.jobDate; else jobfailed">Marked As Inventoried: {{ 'started successfully - in ' + postprocessResults.markAsInventoriedField }}</p>
             <ng-template #jobfailed><p>Known bug in Jobs API encountered: Please run 'Change Physical Items Information' job on set {{postprocessResults.jobId}} manually.</p></ng-template>
         </div>

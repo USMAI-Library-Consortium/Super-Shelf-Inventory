@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, from, Observable} from "rxjs";
+import {from, Observable} from "rxjs";
 import * as XLSX from "xlsx";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
-import {filter, take, tap} from "rxjs/operators";
+import {tap} from "rxjs/operators";
 
 export interface FileInfo {
     inputFileName: string;
@@ -14,40 +14,27 @@ export interface FileInfo {
     providedIn: 'root'
 })
 export class BarcodeParserService {
-    private barcodes$: BehaviorSubject<string[] | null> = new BehaviorSubject(null);
-    private scanDate$: BehaviorSubject<string | null> = new BehaviorSubject(null);
-    private fileInfo$: BehaviorSubject<FileInfo | null> = new BehaviorSubject(null);
+    private barcodes: string[] = null
+    public fileInfo: FileInfo = null;
+    public scanDate: string = null;
 
     constructor(private alert: AlertService) {
     }
 
-    public getLatestFileInfo() {
-        return this.fileInfo$.pipe(filter(fileInfo => !!fileInfo), take(1));
-    }
-
-    public setFileInfo(fileInfo: FileInfo) {
-        this.fileInfo$.next(fileInfo);
-    }
-
-    public getLatestBarcodes(): Observable<string[]> {
-        return this.barcodes$.pipe(filter(barcodes => barcodes instanceof Array), take(1))
-    }
-    public getLatestScanDate(): Observable<string> {
-        return this.scanDate$.pipe(filter(scanDate => !!scanDate), take(1))
-    }
-
-    public setScanDate(scanDate: string) {
-        this.scanDate$.next(scanDate);
+    public getBarcodes(): string[] {
+        return this.barcodes
     }
 
     public reset() {
-        this.barcodes$.next(null)
-        this.scanDate$.next(null)
+        this.barcodes = null
+        this.scanDate = null
+        this.fileInfo = null
     }
 
     public parseExcelFile(excelFile: Blob): Observable<string[]> {
-        this.barcodes$.next(null)
-        this.scanDate$.next(null)
+        this.barcodes = null
+        this.scanDate = null
+        this.fileInfo = null
 
         return from(
             excelFile.arrayBuffer().then(
@@ -91,6 +78,6 @@ export class BarcodeParserService {
                     throw reason;
                 }
             )
-        ).pipe(tap(barcodes => this.barcodes$.next(barcodes))) as Observable<string[]>;
+        ).pipe(tap(barcodes => this.barcodes = barcodes)) as Observable<string[]>;
     }
 }

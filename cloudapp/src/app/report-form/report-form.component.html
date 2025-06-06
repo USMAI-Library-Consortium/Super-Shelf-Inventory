@@ -146,7 +146,7 @@
             <p>Items Scanned: {{scanInJobProgress.scanned}}/{{scanInJobProgress.total}}</p>
         </div>
         <div *ngIf="this.inventoryForm.get('markAsInventoried').value">
-            <p *ngIf="(postProcessService.getLatestMarkAsInventoriedStarted() | async )  as inventoryJob; else notStarted">Mark As Inventoried: Started in field '{{inventoryJob.markAsInventoriedField}}'</p>
+            <p *ngIf="(postProcessService.markAsInventoriedStarted$ | async ) as inventoryJob; else notStarted">Mark As Inventoried: Started in field '{{inventoryJob.markAsInventoriedField}}'</p>
             <ng-template #notStarted>
                 <p>Mark As Inventoried: Not Started</p>
             </ng-template>
