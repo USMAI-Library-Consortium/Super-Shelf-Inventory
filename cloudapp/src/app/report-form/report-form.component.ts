@@ -174,30 +174,18 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        this.reportLoadingSubscription = combineLatest([this.bps.getLatestScanDate(), this.physicalItemInfoService.getLatestPhysicalItems()]).pipe(map(values => {
-            return {
-                scanDate: values[0],
-                physicalItems: values[1],
-            }
-        })).pipe(switchMap(data => {
-            return this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, data.scanDate, data.physicalItems).pipe(map(reportData => {
-                console.log(" Done generating report ")
-                return {
-                    ...reportData,
-                    scanDate: data.scanDate,
-                }
-            }))
-        }), switchMap(reportData => {
+        this.reportLoadingSubscription = this.physicalItemInfoService.getLatestPhysicalItems().pipe(switchMap(physicalItems => {
+            return this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, this.bps.scanDate, physicalItems)
+        }), switchMap(report => {
             const postProcessJobs: Observable<any>[] = []
-            console.log(markAsInventoried, scanInItems)
             if (markAsInventoried) {
-                const barcodes: string[] = reportData.unsortedItems.map(item => item.barcode)
+                const barcodes: string[] = report.unsortedItems.map(item => item.barcode)
                 const markAsInventoriedProcess = this.setService.getLatestSetInfoOrCreateSet(barcodes).pipe(switchMap(setInfo => {
-                    return this.postProcessService.markAsInventoried(markAsInventoried, reportData.scanDate, setInfo)
+                    return this.postProcessService.markAsInventoried(markAsInventoried, this.bps.scanDate, setInfo)
                 }))
                 postProcessJobs.push(markAsInventoriedProcess)
             }
-            if (scanInItems) postProcessJobs.push(this.postProcessService.scanInItems(reportData.unsortedItems, library, circDesk))
+            if (scanInItems) postProcessJobs.push(this.postProcessService.scanInItems(report.unsortedItems, library, circDesk))
 
             return postProcessJobs.length > 0 ? combineLatest(postProcessJobs) : of([])
         })).subscribe(_ => {

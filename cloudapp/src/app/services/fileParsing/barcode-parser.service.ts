@@ -15,8 +15,8 @@ export interface FileInfo {
 })
 export class BarcodeParserService {
     private barcodes$: BehaviorSubject<string[] | null> = new BehaviorSubject(null);
-    private scanDate$: BehaviorSubject<string | null> = new BehaviorSubject(null);
     public fileInfo: FileInfo = null;
+    public scanDate: string = null;
 
     constructor(private alert: AlertService) {
     }
@@ -24,22 +24,17 @@ export class BarcodeParserService {
     public getLatestBarcodes(): Observable<string[]> {
         return this.barcodes$.pipe(filter(barcodes => barcodes instanceof Array), take(1))
     }
-    public getLatestScanDate(): Observable<string> {
-        return this.scanDate$.pipe(filter(scanDate => !!scanDate), take(1))
-    }
-
-    public setScanDate(scanDate: string) {
-        this.scanDate$.next(scanDate);
-    }
 
     public reset() {
         this.barcodes$.next(null)
-        this.scanDate$.next(null)
+        this.scanDate = null
+        this.fileInfo = null
     }
 
     public parseExcelFile(excelFile: Blob): Observable<string[]> {
         this.barcodes$.next(null)
-        this.scanDate$.next(null)
+        this.scanDate = null
+        this.fileInfo = null
 
         return from(
             excelFile.arrayBuffer().then(

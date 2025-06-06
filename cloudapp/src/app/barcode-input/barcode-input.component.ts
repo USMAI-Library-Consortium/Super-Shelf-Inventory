@@ -131,8 +131,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
     public onSubmit() {
         const useCachedResults: boolean = this.barcodeForm.get("useCachedResults").value
-        const scanDate: string = this.barcodeForm.get("scanDate").value
-        this.bps.setScanDate(scanDate)
+        this.bps.scanDate = this.barcodeForm.get("scanDate").value
 
         const mode: string = this.barcodeForm.get("mode").value
 
