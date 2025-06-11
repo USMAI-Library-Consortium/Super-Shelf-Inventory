@@ -6,7 +6,7 @@
    "description": "Cloud app to assist with a shelf inventory process.",
    "icon": {
       "type": "url",
-      "value": "/assets/SuperShelfIcon.png"
+      "value": "/assets/CloudAppIconV2.png"
    },
    "contentSecurity": {
       "sandbox": {
