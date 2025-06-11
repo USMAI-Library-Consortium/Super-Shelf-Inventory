@@ -146,7 +146,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     console.log("999 Error")
                     this.alert.error("ExLibris Service Error: Try 'Large Dataset' optimization mode.")
                 }
-                this.mode = "job"
+                this.barcodeForm.get("mode").setValue("job")
                 this.bps.reset()
                 this.ejs.reset()
                 this.bies.reset()
@@ -174,7 +174,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     // If there is an error with using the Jobs API, fall back to the API mode (fetching individual items).
                     console.log(err)
                     this.alert.warn("Error running Job - switching to API mode...")
-                    this.mode = "api"
+                    this.barcodeForm.get("mode").setValue("api")
                     return this.bies.pullItemData(this.bps.getBarcodes())
                 }), switchMap(result => {
                     // Save the job run, if the job was run.
@@ -204,7 +204,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     if (error.status === 999) {
                         this.alert.error("Fatal ExLibris Service Error")
                     } else {
-                        this.mode = "api"
+                        this.barcodeForm.get("mode").setValue("api")
                         this.bps.reset()
                         this.ejs.reset()
                         this.bies.reset()
