@@ -129,6 +129,18 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         }
     }
 
+    private reset(mode: string) {
+        this.barcodeForm.get("mode").setValue(mode)
+        this.bps.reset()
+        this.ejs.reset()
+        this.bies.reset()
+        this.setService.reset()
+        this.dataLoadRunning$.next(false)
+        this.barcodeForm.get("barcodeXLSXFile").setValue(null)
+        this.barcodeForm.get("scanDate").setValue(null)
+        this.barcodeForm.get("useCachedResults").setValue(null)
+    }
+
     public onSubmit() {
         const useCachedResults: boolean = this.barcodeForm.get("useCachedResults").value
         this.bps.scanDate = this.barcodeForm.get("scanDate").value
@@ -146,16 +158,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     console.log("999 Error")
                     this.alert.error("ExLibris Service Error: Try 'Large Dataset' optimization mode.")
                 }
-                this.barcodeForm.get("mode").setValue("job")
-                this.bps.reset()
-                this.ejs.reset()
-                this.bies.reset()
-                this.setService.reset()
-                this.dataLoadRunning$.next(false)
-                this.barcodeForm.get("barcodeXLSXFile").setValue(null)
-                this.barcodeForm.get("scanDate").setValue(null)
-                this.barcodeForm.get("useCachedResults").setValue(null)
-                this.enableUseCachedResults$.next(false);
+                this.reset("job")
             })
         } else {
             if (useCachedResults) {
@@ -204,16 +207,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     if (error.status === 999) {
                         this.alert.error("Fatal ExLibris Service Error")
                     } else {
-                        this.barcodeForm.get("mode").setValue("api")
-                        this.bps.reset()
-                        this.ejs.reset()
-                        this.bies.reset()
-                        this.setService.reset()
-                        this.dataLoadRunning$.next(false)
-                        this.barcodeForm.get("barcodeXLSXFile").setValue(null)
-                        this.barcodeForm.get("scanDate").setValue(null)
-                        this.barcodeForm.get("useCachedResults").setValue(null)
-                        this.enableUseCachedResults$.next(false);
+                        this.reset("api")
                     }
                 })
             }
