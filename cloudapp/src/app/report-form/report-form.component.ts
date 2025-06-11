@@ -196,7 +196,6 @@ export class ReportForm implements OnInit, OnDestroy {
         let libraryWithHighestCount = ""
         for (let key of Object.keys(this.librariesFromPhysicalItems)) {
             if(!key || key === "null") continue;
-            console.log(key)
             this.institutionLibrariesForDropdown.push({
                 code: key,
                 name: this.librariesFromPhysicalItems[key]['name'],
@@ -225,7 +224,6 @@ export class ReportForm implements OnInit, OnDestroy {
         }]) {
             for (let key of Object.keys(mapping.source)) {
                 if(!key || key === "null") continue;
-                console.log(key)
                 let itemCount = mapping.source[key]['count']
                 mapping.dest.push({
                     code: key,

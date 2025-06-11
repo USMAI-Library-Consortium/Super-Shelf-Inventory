@@ -142,10 +142,14 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
-                console.error(error)
+                if (error.status === 999) {
+                    console.log("999 Error")
+                    this.alert.error("ExLibris Service Error: Try 'Large Dataset' optimization mode.")
+                }
                 this.mode = "job"
                 this.bps.reset()
                 this.ejs.reset()
+                this.bies.reset()
                 this.setService.reset()
                 this.dataLoadRunning$.next(false)
                 this.barcodeForm.get("barcodeXLSXFile").setValue(null)
@@ -197,15 +201,20 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 }, error => {
                     // Reset the component
                     console.log(error)
-                    this.mode = "api"
-                    this.bps.reset()
-                    this.ejs.reset()
-                    this.setService.reset()
-                    this.dataLoadRunning$.next(false)
-                    this.barcodeForm.get("barcodeXLSXFile").setValue(null)
-                    this.barcodeForm.get("scanDate").setValue(null)
-                    this.barcodeForm.get("useCachedResults").setValue(null)
-                    this.enableUseCachedResults$.next(false);
+                    if (error.status === 999) {
+                        this.alert.error("Fatal ExLibris Service Error")
+                    } else {
+                        this.mode = "api"
+                        this.bps.reset()
+                        this.ejs.reset()
+                        this.bies.reset()
+                        this.setService.reset()
+                        this.dataLoadRunning$.next(false)
+                        this.barcodeForm.get("barcodeXLSXFile").setValue(null)
+                        this.barcodeForm.get("scanDate").setValue(null)
+                        this.barcodeForm.get("useCachedResults").setValue(null)
+                        this.enableUseCachedResults$.next(false);
+                    }
                 })
             }
         }

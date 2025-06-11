@@ -111,7 +111,6 @@ export class ExportJobService {
                 })
             ),
             tap((result) => {
-                console.log(result)
                 this.dataExportJobProgress$.next({
                     percentage: result["progress"],
                     status: result["status"]['desc'],

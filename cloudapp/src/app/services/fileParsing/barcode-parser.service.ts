@@ -70,7 +70,7 @@ export class BarcodeParserService {
                     });
 
                     const itemsArray: string[] = Array.from(items)
-                    console.log(`${itemsArray} items parsed from excel file.`);
+                    console.log(`${itemsArray.length} items parsed from excel file.`);
                     return itemsArray;
                 },
                 (reason) => {

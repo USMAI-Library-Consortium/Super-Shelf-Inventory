@@ -19,13 +19,8 @@ export class IndividualItemInfoService {
     constructor(private restService: CloudAppRestService) {
     }
 
-    public getLatestPhysicalItemInfo(): Observable<PhysicalItem[]> {
-        return this.itemInfoProcessed$.pipe(filter(itemInfo => !!itemInfo), take(1))
-    }
-
     private fetchTempLocationInfo(item: PhysicalItem): Observable<PhysicalItem> {
         return this.restService.call(`/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}`).pipe(map(result => {
-            console.log(result);
             const itemWithNewInfo = {...item}
             itemWithNewInfo.inTempLocation = result['holding_data']['in_temp_location']
             if (itemWithNewInfo.inTempLocation) {

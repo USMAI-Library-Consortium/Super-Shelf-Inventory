@@ -25,33 +25,34 @@ export class BackupItemExportService {
     }
 
     private getItemInfo(barcode: string): Observable<PhysicalItem> {
-        console.log(barcode)
         return this.restService.call(`/items?item_barcode=${barcode}`).pipe(map(result => {
             return this.extractItemDataFromAPIResponse(barcode, result)
         }), catchError(err => {
-            console.error(err)
-            const item: PhysicalItem = {
-                barcode,
-                existsInAlma: false,
-                source: 'api',
-                title: null,
-                description: null,
-                mmsId: null,
-                holdingId: null,
-                pid: null,
-                callNumber: null,
-                library: null,
-                location: null,
-                policyType: null,
-                itemMaterialType: null,
-                status: null,
-                processType: null,
-                lastModifiedDate: null,
-                inTempLocation: null,
-                hasTempLocation: null,
-                requested: null
+            if (err.status === 404 || err.status === 400) {
+                return of({
+                    barcode,
+                    existsInAlma: false,
+                    source: 'api',
+                    title: null,
+                    description: null,
+                    mmsId: null,
+                    holdingId: null,
+                    pid: null,
+                    callNumber: null,
+                    library: null,
+                    location: null,
+                    policyType: null,
+                    itemMaterialType: null,
+                    status: null,
+                    processType: null,
+                    lastModifiedDate: null,
+                    inTempLocation: null,
+                    hasTempLocation: null,
+                    requested: null
+                })
+            } else {
+                throw err
             }
-            return of(item)
         }))
     }
 

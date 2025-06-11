@@ -106,7 +106,6 @@ export class SetService {
                 return of(false)
             }), map(result => {
                 if (result) {
-                    console.log(result)
                     membersAdded += result["number_of_members"]["value"]
                     this.addMembersToSetProgress$.next({
                         totalMembers: barcodes.length,
