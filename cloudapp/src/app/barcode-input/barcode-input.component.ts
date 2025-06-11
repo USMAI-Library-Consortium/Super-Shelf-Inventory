@@ -136,6 +136,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         this.bies.reset()
         this.setService.reset()
         this.dataLoadRunning$.next(false)
+        this.previousRun = null
         this.barcodeForm.get("barcodeXLSXFile").setValue(null)
         this.barcodeForm.get("scanDate").setValue(null)
         this.barcodeForm.get("useCachedResults").setValue(null)
