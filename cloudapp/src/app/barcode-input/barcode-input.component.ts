@@ -4,6 +4,7 @@ import {Router} from "@angular/router";
 import {BehaviorSubject, of, Subscription, throwError} from "rxjs";
 import {catchError, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
+import {ActivatedRoute} from "@angular/router";
 
 import {StateService, PreviousRun} from "../services/apis/state.service";
 import {ExportJobService} from "../services/apis/export-job.service";
@@ -45,10 +46,15 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         public bies: BackupItemExportService,
         private alert: AlertService,
         private piis: PhysicalItemInfoService,
+        private route: ActivatedRoute,
     ) {
     }
 
     ngOnInit(): void {
+
+        const errorMessage = this.route.snapshot.queryParamMap.get('errorMessage');
+        console.log(errorMessage)
+        if (errorMessage) this.alert.error(errorMessage);
 
         this.resetServices()
 

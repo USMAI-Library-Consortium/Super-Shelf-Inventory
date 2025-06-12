@@ -7,7 +7,6 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
-import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 
 @Component({
     selector: "app-job-results-input",
@@ -28,7 +27,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
         public iii: IndividualItemInfoService,
         private fb: FormBuilder,
         private router: Router,
-        private alert: AlertService,
     ) {
     }
 
@@ -51,13 +49,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
         this.piis.reset()
     }
 
-    reset() {
-        this.ready$.next(false);
-        setTimeout(() => {
-            this.onBack()
-        }, 3000)
-    }
-
     onSubmit() {
         this.loading$.next(true)
         this.loadDataSubscription =  this.iii.pullTempLocationItemInfo(this.piis.physicalItems).subscribe(physicalItemsWithTempLocation => {
@@ -66,12 +57,13 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
             this.router.navigate(["configure-report"])
         }, err => {
             console.log(err)
-            if (err.status === 999) {
-                this.alert.error("Fatal: ExLibris Service Error. We're working with ExLibris on this.")
-            } else {
-                this.alert.error(`Issue parsing item info... ${err.message}. Resetting run.`)
-            }
-            this.reset()
+            let message: string = `Issue parsing item info... ${err.message}. Resetting run.`
+            if (err.status === 999) message = "Fatal: ExLibris Service Error. We're working with ExLibris on this; you may have to wait to use the app."
+            this.router.navigate(["/"], {
+                queryParams: {
+                    errorMessage: message
+                }
+            })
         })
     }
 
@@ -83,8 +75,12 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
             this.ready$.next(true);
         }, err => {
             console.log(err)
-            this.alert.error(`Issue parsing job file... ${err.message}. Resetting run.`)
-            this.reset()
+            let message = `Issue parsing job file... ${err.message}. Resetting run.`
+            this.router.navigate(["/"], {
+                queryParams: {
+                    errorMessage: message
+                }
+            })
         })
     }
 }
