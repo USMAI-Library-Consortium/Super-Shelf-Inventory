@@ -49,6 +49,9 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+
+        this.resetServices()
+
         this.barcodeForm = this.fb.group({
             barcodeXLSXFile: [null, Validators.required],
             scanDate: [null, Validators.required],
@@ -129,13 +132,19 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         }
     }
 
-    private reset(mode: string) {
-        this.previousRun = null
-        this.barcodeForm.get("mode").setValue(mode)
+    private resetServices() {
+        // Reset the services that this component will potentially process
         this.bps.reset()
+        this.setService.reset()
         this.ejs.reset()
         this.bies.reset()
-        this.setService.reset()
+        this.piis.reset()
+    }
+
+    private reset(mode: string) {
+        this.previousRun = null
+        this.resetServices()
+        this.barcodeForm.get("mode").setValue(mode)
         this.dataLoadRunning$.next(false)
         this.barcodeForm.get("barcodeXLSXFile").setValue(null)
         this.barcodeForm.get("scanDate").setValue(null)

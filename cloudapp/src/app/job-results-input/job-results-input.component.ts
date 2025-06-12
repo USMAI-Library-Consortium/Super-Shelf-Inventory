@@ -8,7 +8,6 @@ import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-inf
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
-import {SetService} from "../services/apis/set.service";
 
 @Component({
     selector: "app-job-results-input",
@@ -30,11 +29,11 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
         private fb: FormBuilder,
         private router: Router,
         private alert: AlertService,
-        private setService: SetService,
     ) {
     }
 
     ngOnInit(): void {
+        this.resetServices()
         this.reportForm = this.fb.group({
             reportFormInput: [null, Validators.required],
         });
@@ -45,21 +44,17 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     }
 
     onBack(): void {
-        this.bps.reset()
-        this.ejs.reset()
-        this.piis.reset()
-        this.setService.reset()
         this.router.navigate(["/"])
+    }
+
+    private resetServices() {
+        this.piis.reset()
     }
 
     reset() {
         this.ready$.next(false);
-        this.bps.reset()
-        this.ejs.reset()
-        this.setService.reset()
-        this.piis.reset()
         setTimeout(() => {
-            this.router.navigate(['/'])
+            this.onBack()
         }, 3000)
     }
 

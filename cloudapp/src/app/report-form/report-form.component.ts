@@ -10,7 +10,6 @@ import {MarkAsInventoriedJob, PostprocessService, ScanInResults} from "../servic
 import {PhysicalItem, PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
-import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
 interface Library {
     name: string;
@@ -98,7 +97,6 @@ export class ReportForm implements OnInit, OnDestroy {
         private reportService: ReportService,
         public setService: SetService,
         public postProcessService: PostprocessService,
-        private bes: BackupItemExportService,
         private router: Router,
         private configurationService: CloudAppConfigService,
         private eventService: CloudAppEventsService
@@ -106,6 +104,7 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this.resetServices()
         this.inventoryForm = this.fb.group({
             callNumberType: ["", Validators.required],
             library: ["", Validators.required],
@@ -325,14 +324,16 @@ export class ReportForm implements OnInit, OnDestroy {
         circDeskInput.updateValueAndValidity()
     }
 
+    private resetServices() {
+        this.reportService.reset()
+        this.postProcessService.reset()
+    }
+
     public onBack(): void {
         const dataSource = this.physicalItemInfoService.physicalItems[0].source
-        this.physicalItemInfoService.reset()
         if (dataSource == 'job') {
             this.router.navigate(['/', 'job-results-input'])
         } else {
-            this.bes.reset()
-            this.bps.reset()
             this.router.navigate(['/'])
         }
     }
