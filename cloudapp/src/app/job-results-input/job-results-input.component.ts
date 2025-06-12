@@ -46,43 +46,39 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     }
 
     onBack(): void {
+        this.iii.reset()
+        this.bps.reset()
+        this.ejs.reset()
+        this.piis.reset()
+        this.setService.reset()
         this.router.navigate(["/"])
     }
 
-    reset () {
+    reset() {
         this.ready$.next(false);
         this.iii.reset()
         this.bps.reset()
         this.ejs.reset()
         this.setService.reset()
+        this.piis.reset()
         setTimeout(() => {
             this.router.navigate(['/'])
-        }, 5000)
+        }, 3000)
     }
 
     onSubmit() {
         this.loading$.next(true)
-        this.loadDataSubscription = of(this.piis.physicalItems).pipe(switchMap(items => {
-            // Pull whether Temp Locations are active if the data source is from the Export Job
-            if (items[0].source === 'job') {
-                return this.iii.pullTempLocationItemInfo(items).pipe(catchError(err => {
-                    if (err.status === 999) {
-                        console.log(err)
-                        this.alert.error("Fatal: ExLibris Service Error. We're working with ExLibris on this.")
-                        this.reset()
-                    } else {
-                        throw err
-                    }
-                }))
-            }
-            return of(items)
-        })).subscribe(physicalItemsWithTempLocation => {
+        this.loadDataSubscription =  this.iii.pullTempLocationItemInfo(this.piis.physicalItems).subscribe(physicalItemsWithTempLocation => {
             this.piis.physicalItems = physicalItemsWithTempLocation
             this.loading$.next(false);
             this.router.navigate(["configure-report"])
         }, err => {
             console.log(err)
-            this.alert.error(`Issue parsing item info... ${err.message}. Resetting run.`)
+            if (err.status === 999) {
+                this.alert.error("Fatal: ExLibris Service Error. We're working with ExLibris on this.")
+            } else {
+                this.alert.error(`Issue parsing item info... ${err.message}. Resetting run.`)
+            }
             this.reset()
         })
     }
