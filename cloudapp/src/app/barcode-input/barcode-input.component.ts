@@ -143,6 +143,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
     private reset(mode: string) {
         this.previousRun = null
+        this.enableUseCachedResults$.next(false);
         this.resetServices()
         this.barcodeForm.get("mode").setValue(mode)
         this.dataLoadRunning$.next(false)
