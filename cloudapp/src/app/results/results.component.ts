@@ -33,7 +33,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
     onSubmit() {
         this.reportService.reset()
-        this.iii.reset()
         this.bes.reset()
         this.prs.reset()
         this.postprocessService.reset()

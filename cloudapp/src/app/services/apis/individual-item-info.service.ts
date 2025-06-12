@@ -14,7 +14,6 @@ interface IndividualItemInfoProgress {
 })
 export class IndividualItemInfoService {
     public getIndividualItemInfoProgress$ = new Subject<IndividualItemInfoProgress>();
-    private itemInfoProcessed$ = new BehaviorSubject<PhysicalItem[]>(null)
 
     constructor(private restService: CloudAppRestService) {
     }
@@ -43,10 +42,6 @@ export class IndividualItemInfoService {
                     total
                 })
             })) : of(item)
-        }), toArray(), tap(items => this.itemInfoProcessed$.next(items)))
-    }
-
-    public reset() {
-        this.itemInfoProcessed$.next(null)
+        }), toArray())
     }
 }

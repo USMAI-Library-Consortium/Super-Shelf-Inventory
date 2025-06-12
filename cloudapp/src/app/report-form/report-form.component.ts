@@ -10,7 +10,6 @@ import {MarkAsInventoriedJob, PostprocessService, ScanInResults} from "../servic
 import {PhysicalItem, PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {ReportService} from "../services/dataProcessing/report.service";
-import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 import {BackupItemExportService} from "../services/apis/backup-item-export.service";
 
 interface Library {
@@ -55,7 +54,6 @@ export class ReportForm implements OnInit, OnDestroy {
     public scanLocationsForDropdown: ScanLocation[] = [];
     public itemTypesForDropdown: ItemType[] = [];
     public policyTypesForDropdown: PolicyType[] = [];
-    public circDesksForDropdown: CircDesk[] = [];
 
     private librariesFromPhysicalItems: {
         [key: string]: {
@@ -97,7 +95,6 @@ export class ReportForm implements OnInit, OnDestroy {
         private fb: FormBuilder,
         private bps: BarcodeParserService,
         private physicalItemInfoService: PhysicalItemInfoService,
-        private iii: IndividualItemInfoService,
         private reportService: ReportService,
         public setService: SetService,
         public postProcessService: PostprocessService,
@@ -331,12 +328,11 @@ export class ReportForm implements OnInit, OnDestroy {
     public onBack(): void {
         const dataSource = this.physicalItemInfoService.physicalItems[0].source
         this.physicalItemInfoService.reset()
-        this.iii.reset()
-        this.bes.reset()
-        this.reportService.reset()
         if (dataSource == 'job') {
             this.router.navigate(['/', 'job-results-input'])
         } else {
+            this.bes.reset()
+            this.bps.reset()
             this.router.navigate(['/'])
         }
     }

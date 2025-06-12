@@ -45,7 +45,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     }
 
     onBack(): void {
-        this.iii.reset()
         this.bps.reset()
         this.ejs.reset()
         this.piis.reset()
@@ -55,7 +54,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
 
     reset() {
         this.ready$.next(false);
-        this.iii.reset()
         this.bps.reset()
         this.ejs.reset()
         this.setService.reset()
