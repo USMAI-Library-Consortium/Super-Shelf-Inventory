@@ -7,7 +7,7 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
-import {switchMap} from "rxjs/operators";
+import {catchError, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 import {SetService} from "../services/apis/set.service";
 
@@ -49,12 +49,31 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
         this.router.navigate(["/"])
     }
 
+    reset () {
+        this.ready$.next(false);
+        this.iii.reset()
+        this.bps.reset()
+        this.ejs.reset()
+        this.setService.reset()
+        setTimeout(() => {
+            this.router.navigate(['/'])
+        }, 5000)
+    }
+
     onSubmit() {
         this.loading$.next(true)
         this.loadDataSubscription = of(this.piis.physicalItems).pipe(switchMap(items => {
             // Pull whether Temp Locations are active if the data source is from the Export Job
             if (items[0].source === 'job') {
-                return this.iii.pullTempLocationItemInfo(items)
+                return this.iii.pullTempLocationItemInfo(items).pipe(catchError(err => {
+                    if (err.status === 999) {
+                        console.log(err)
+                        this.alert.error("Fatal: ExLibris Service Error. We're working with ExLibris on this.")
+                        this.reset()
+                    } else {
+                        throw err
+                    }
+                }))
             }
             return of(items)
         })).subscribe(physicalItemsWithTempLocation => {
@@ -62,16 +81,9 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
             this.loading$.next(false);
             this.router.navigate(["configure-report"])
         }, err => {
-            this.ready$.next(false);
             console.log(err)
             this.alert.error(`Issue parsing item info... ${err.message}. Resetting run.`)
-            this.iii.reset()
-            this.bps.reset()
-            this.ejs.reset()
-            this.setService.reset()
-            setTimeout(() => {
-                this.router.navigate(['/'])
-            }, 5000)
+            this.reset()
         })
     }
 
@@ -82,16 +94,9 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
             this.piis.physicalItems = physicalItems
             this.ready$.next(true);
         }, err => {
-            this.ready$.next(false);
             console.log(err)
-            this.alert.error(`Issue parsing item info... ${err.message}. Resetting run.`)
-            this.iii.reset()
-            this.bps.reset()
-            this.ejs.reset()
-            this.setService.reset()
-            setTimeout(() => {
-                this.router.navigate(['/'])
-            }, 5000)
+            this.alert.error(`Issue parsing job file... ${err.message}. Resetting run.`)
+            this.reset()
         })
     }
 }

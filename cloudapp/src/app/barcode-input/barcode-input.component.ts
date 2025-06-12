@@ -205,11 +205,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 }, error => {
                     // Reset the component
                     console.log(error)
-                    if (error.status === 999) {
-                        this.alert.error("Fatal ExLibris Service Error")
-                    } else {
-                        this.reset("api")
-                    }
+                    this.reset("api")
                 })
             }
         }
