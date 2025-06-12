@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {BehaviorSubject, of, Subscription} from "rxjs";
+import {BehaviorSubject, Subscription} from "rxjs";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {Router} from "@angular/router";
 
@@ -7,7 +7,6 @@ import {ExportJobService} from "../services/apis/export-job.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
 import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
-import {catchError, switchMap} from "rxjs/operators";
 import {AlertService} from "@exlibris/exl-cloudapp-angular-lib";
 import {SetService} from "../services/apis/set.service";
 
