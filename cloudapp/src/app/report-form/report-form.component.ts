@@ -1,4 +1,4 @@
-import {Subscription, combineLatest, BehaviorSubject, Observable, of} from "rxjs";
+import {Subscription, combineLatest, BehaviorSubject, Observable} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {map, switchMap, tap} from "rxjs/operators";
