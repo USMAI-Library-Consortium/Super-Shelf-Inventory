@@ -248,19 +248,25 @@ describe('CallNumberService', () => {
         describe("Should parse Dewey classification Numbers correctly", () => {
             it ('should parse full dewey number correctly', () => {
                 const deweyNumber = "641.5092 B37 2022"
-                const expectedResult = "641.5092000000_b 3700   _         _         _2022"
+                const expectedResult = "641.5092000000_b  3700   _          _          _2022"
                 expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
             })
 
             it ('should parse dewey number with cutter suffix correctly', () => {
                 const deweyNumber = "001.422 T593s 2021"
-                const expectedResult = "001.4220000000_t 5930s  _         _         _2021"
+                const expectedResult = "001.4220000000_t  5930s  _          _          _2021"
                 expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
             })
 
             it ('should parse dewey number with very long decimal number correctly', () => {
                 const deweyNumber = "028.70279739991453 C195 2020"
-                const expectedResult = "028.7027973999_c 1950   _         _         _2020"
+                const expectedResult = "028.7027973999_c  1950   _          _          _2020"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
+            it("Should parse correctly with 3-letter cutter numbers", () => {
+                const deweyNumber = "613.2 Sch84 a"
+                const expectedResult = "613.2000000000_sch8400   _          _          _a"
                 expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
             })
 
