@@ -5,6 +5,7 @@ import {initialBarcodes, exportData} from "./export-job-test-data";
 import {ExportJobService} from "./export-job.service";
 import {PhysicalItem} from "../fileParsing/physical-item-info.service";
 import {of} from "rxjs";
+import {delay} from "rxjs/operators";
 
 describe('IndividualItemInfoService', () => {
     let service: IndividualItemInfoService;
@@ -24,7 +25,7 @@ describe('IndividualItemInfoService', () => {
             const newItem = {...physicalItem}
             newItem.inTempLocation = inTempLocation
             inTempLocation = !inTempLocation
-            return of(newItem)
+            return of(newItem).pipe(delay(10))
         })
         const ejs = TestBed.inject(ExportJobService);
         ejs.parseReport(exportData, initialBarcodes).subscribe(items => {
