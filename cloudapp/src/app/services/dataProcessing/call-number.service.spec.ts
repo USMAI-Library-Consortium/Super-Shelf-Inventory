@@ -299,6 +299,14 @@ describe('CallNumberService', () => {
                 const result = service.normalizeLC("HF 1417.5 M85XB 1989")
                 expect(result).toEqual("HF   01417.50000000000 M85XB000          1989", result)
             })
+            it('should parse call number correctly 1', () => {
+                const result = service.normalizeLC("LB 2351.2 .P375 2011")
+                expect(result).toEqual("LB   02351.20000000000 P3750000          2011")
+            })
+            it('should parse call number correctly 2', () => {
+                const result = service.normalizeLC("LB 1062.2 .L47 2017")
+                expect(result).toEqual("LB   01062.20000000000 L4700000          2017")
+            })
 
         })
     })
