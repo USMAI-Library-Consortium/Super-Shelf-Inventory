@@ -78,7 +78,7 @@
             </div>
 
             <p *ngIf="!previousRun || mode === 'api'">
-                Clicking 'Next' will load data from Alma. Loading may take a few minutes
+                Clicking 'Next' will load data from Alma. Loading may take a few minutes.
             </p>
         </form>
     </div>
@@ -110,6 +110,7 @@
         <ng-template #initializing>
             <p>Initializing...</p>
         </ng-template>
+        <p>Pulling Item Data...</p>
         <p>Total: {{bies.total}}</p>
         <p>Complete: {{bies.complete}}</p>
     </div>

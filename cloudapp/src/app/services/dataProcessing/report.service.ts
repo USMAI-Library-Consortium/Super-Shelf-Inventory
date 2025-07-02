@@ -73,7 +73,7 @@ export class ReportService {
         orderProblemLimit: string,
         reportOnlyProblems: boolean,
         sortBy: string,
-        sortSerialsByDescription: boolean,
+        sortMultiVolumeByDescription: boolean,
         circDeskCode: string | null,
         scanDate: string,
         physicalItems: PhysicalItem[]
@@ -132,15 +132,15 @@ export class ReportService {
 
         // Create a sorted array.
         const sorted = [...unsortedWithUnsortablesRemoved].sort(callNumberType === "LC" ? (a, b) => {
-            return this.callNumberService.sortLC(a, b, sortSerialsByDescription)
+            return this.callNumberService.sortLC(a, b, sortMultiVolumeByDescription)
         } : (a, b) => {
-            return this.callNumberService.sortDewey(a, b, sortSerialsByDescription)
+            return this.callNumberService.sortDewey(a, b, sortMultiVolumeByDescription)
         })
 
         sorted.forEach((item, index) => {
             // Flag order issues unless "Only problems other than CN Order" is requested
             if (orderProblemLimit !== "onlyOther") {
-                this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved, sortSerialsByDescription);
+                this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved, sortMultiVolumeByDescription);
             } // Finished calculating order issues
 
             // Flag other issues unless "Only CN Order problems" is requested.
@@ -200,7 +200,7 @@ export class ReportService {
     protected getProblemCounts(orderProblemLimit: string, items: ProcessedPhysicalItem[]) {
         // Get order problems
         const orderProblemCount = (orderProblemLimit !== "onlyOther") ? items.reduce((acc, item) => {
-            return item.hasOrderProblem && item.hasOrderProblem !== "**Serial Order Not Checked**" ? acc + 1 : acc
+            return item.hasOrderProblem && item.hasOrderProblem !== "**Multi-Volume Order Not Checked**" ? acc + 1 : acc
         }, 0) : "n/a"
         const temporaryLocationProblemCount = (orderProblemLimit !== "onlyOrder") ? items.reduce((acc, item) => {
             return item.hasTemporaryLocationProblem ? acc + 1 : acc
@@ -290,7 +290,7 @@ export class ReportService {
         }
     }
 
-    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[], sortSerialsByDescription: boolean) {
+    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[], sortMultiVolumeByDescription: boolean) {
         if (item.existsInAlma) {
             const actualLocationIndex = item.actualLocationInUnsortablesRemoved - 1
             const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
@@ -300,7 +300,7 @@ export class ReportService {
             const correctNextItemCallNum = index < sorted.length - 1 ? sorted[index + 1].callNumber : "LOCATION END"
             const correctNextItemDescription = index < sorted.length - 1 ? sorted[index + 1].description : "LOCATION END"
 
-            const itemIsSerial = correctNextItemCallNum === item.callNumber || correctPreviousItemCallNum === item.callNumber
+            const isMultiVolume = correctNextItemCallNum === item.callNumber || correctPreviousItemCallNum === item.callNumber
 
             // Get actual previous call number based on actualLocation
             const actualPreviousItemCallNum = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].callNumber : "LOCATION START";
@@ -314,23 +314,24 @@ export class ReportService {
 
             const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
             if (!itemIsInTheCorrectAbsolutePosition) {
-                if (itemIsSerial) {
-                    if (sortSerialsByDescription) {
-                        const previousSerialIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
-                        const nextSerialIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
-                        const isOutOfOrderWithinSerial = !previousSerialIsAlreadyCorrect || !nextSerialIsAlreadyCorrect
-                        if (isOutOfOrderWithinSerial) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' (${correctPreviousItemDescription}) and '${correctNextItemCallNum}' (${correctNextItemDescription})`
+                if (isMultiVolume) {
+                    if (sortMultiVolumeByDescription) {
+                        const previousMultiVolumeIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
+                        const nextMultiVolumeIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
+                        const isOutOfOrderWithinMultiVolume = !previousMultiVolumeIsAlreadyCorrect || !nextMultiVolumeIsAlreadyCorrect
+                        if (isOutOfOrderWithinMultiVolume) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' (${correctPreviousItemDescription}) and '${correctNextItemCallNum}' (${correctNextItemDescription})`
                         item.hasProblem = true
                     }
                 }
             }
 
-            if (isRogueItem && !itemIsSerial) {
+            if (isRogueItem && !isMultiVolume) {
                 item.hasProblem = true
                 item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
             }
 
-            if (itemIsSerial && !sortSerialsByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Serial Order Not Checked**" : "**Serial Order Not Checked**"
+            // Mark multi-volume order as not being checked. Disabled for now as it's not particularly useful.
+            // if (isMultiVolume && !sortMultiVolumeByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Multi-Volume Order Not Checked**" : "**Multi-Volume Order Not Checked**"
         } else {
             item.hasProblem = true
         }

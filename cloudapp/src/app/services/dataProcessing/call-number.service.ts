@@ -12,11 +12,11 @@ export class CallNumberService {
     constructor() {
     }
 
-    public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortSerialsByDescription: boolean) => {
+    public sortLC = (a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortMultiVolumeByDescription: boolean) => {
         const aCN: string = a.callSort ? a.callSort : this.normalizeLC(a.callNumber)
         const bCN: string = b.callSort ? b.callSort : this.normalizeLC(b.callNumber)
         let compareVal = aCN.localeCompare(bCN)
-        if (compareVal === 0 && sortSerialsByDescription) {
+        if (compareVal === 0 && sortMultiVolumeByDescription) {
             a.normalizedDescription = this.normalizeDescription(a.description)
             b.normalizedDescription = this.normalizeDescription(b.description)
             if (a.normalizedDescription || b.normalizedDescription) {
@@ -165,11 +165,11 @@ export class CallNumberService {
         return {lcCallNumber, integerMarkers};
     }
 
-    public sortDewey(a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortSerialsByDescription: boolean) {
+    public sortDewey(a: ProcessedPhysicalItem, b: ProcessedPhysicalItem, sortMultiVolumeByDescription: boolean) {
         const aCN: string = a.callSort ? a.callSort : this.normalizeDewey(a.callNumber)
         const bCN: string = b.callSort ? b.callSort : this.normalizeDewey(b.callNumber)
         let compareVal = aCN.localeCompare(bCN)
-        if (compareVal === 0 && sortSerialsByDescription) {
+        if (compareVal === 0 && sortMultiVolumeByDescription) {
             a.normalizedDescription = this.normalizeDescription(a.description)
             b.normalizedDescription = this.normalizeDescription(b.description)
             if (a.normalizedDescription || b.normalizedDescription) {
