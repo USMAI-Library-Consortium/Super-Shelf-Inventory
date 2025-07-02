@@ -114,7 +114,7 @@ export class ReportForm implements OnInit, OnDestroy {
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
             sortBy: ["actualOrder", Validators.required],
-            sortSerialsByDescription: [false, Validators.required],
+            sortMultiVolumeByDescription: [true, Validators.required],
             markAsInventoried: [false, Validators.required],
             scanInItems: [false, Validators.required],
             circDesk: [null],
@@ -158,11 +158,11 @@ export class ReportForm implements OnInit, OnDestroy {
         const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
         const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
         const sortBy = this.inventoryForm.get("sortBy").value
-        const sortSerialsByDescription = this.inventoryForm.get("sortSerialsByDescription").value
+        const sortMultiVolumeByDescription = this.inventoryForm.get("sortMultiVolumeByDescription").value
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortSerialsByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
+        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortMultiVolumeByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
 
         let markAsInventoriedJob: Observable<MarkAsInventoriedJob> = null
         if (markAsInventoried) {
