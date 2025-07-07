@@ -156,6 +156,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         this.barcodeForm.get("barcodeXLSXFile").setValue(null)
         this.barcodeForm.get("scanDate").setValue(null)
         this.barcodeForm.get("useCachedResults").setValue(false)
+        this.loadDataSubscription.unsubscribe()
     }
 
     public onSubmit() {
@@ -171,7 +172,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 this.router.navigate(["configure-report"])
             }, error => {
                 // Reset the component
-                if (error.status === 999) {
+                if (error.status === 999 || error.status === 500) {
                     console.log("999 Error")
                     this.alert.error("ExLibris Service Error: Try 'Large Dataset' optimization mode.")
                 }
