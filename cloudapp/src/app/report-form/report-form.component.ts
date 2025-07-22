@@ -89,6 +89,7 @@ export class ReportForm implements OnInit, OnDestroy {
     private enableReportOnlyProblemsSubscription: Subscription;
     private enablePostprocessSubscription: Subscription;
     private reportSetupSubscription: Subscription;
+    private blankItemPolicyValidSubscription: Subscription;
 
     constructor(
         private fb: FormBuilder,
@@ -146,6 +147,16 @@ export class ReportForm implements OnInit, OnDestroy {
             // Set dropdown displays
             this.setDisplayLists(userSettings.circDesk)
         })).subscribe()
+
+        // Make Item Policies dropdown required or not required, based on whether blank item policies are permitted.
+        this.blankItemPolicyValidSubscription = this.inventoryForm.get("allowBlankItemPolicy").valueChanges.subscribe(blankItemPolicyValid => {
+            if (blankItemPolicyValid) {
+                this.inventoryForm.get("expectedPolicyTypes").clearValidators()
+            } else {
+                this.inventoryForm.get("expectedPolicyTypes").setValidators([Validators.required])
+            }
+            this.inventoryForm.get("expectedPolicyTypes").updateValueAndValidity()
+        })
     }
 
     public onSubmit() {
@@ -346,5 +357,6 @@ export class ReportForm implements OnInit, OnDestroy {
         this.enableReportOnlyProblemsSubscription.unsubscribe()
         this.enablePostprocessSubscription.unsubscribe()
         this.reportSetupSubscription.unsubscribe()
+        this.blankItemPolicyValidSubscription.unsubscribe()
     }
 }
