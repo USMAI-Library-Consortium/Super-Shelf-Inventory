@@ -89,6 +89,7 @@ export class ReportForm implements OnInit, OnDestroy {
     private enableReportOnlyProblemsSubscription: Subscription;
     private enablePostprocessSubscription: Subscription;
     private reportSetupSubscription: Subscription;
+    private blankItemPolicyValidSubscription: Subscription;
 
     constructor(
         private fb: FormBuilder,
@@ -111,6 +112,7 @@ export class ReportForm implements OnInit, OnDestroy {
             scanLocations: [[], Validators.required],
             expectedItemTypes: [[], Validators.required],
             expectedPolicyTypes: [[], Validators.required],
+            allowBlankItemPolicy: [false, Validators.required],
             limitOrderProblems: ["no", Validators.required],
             reportOnlyProblems: [false, Validators.required],
             sortBy: ["actualOrder", Validators.required],
@@ -145,6 +147,16 @@ export class ReportForm implements OnInit, OnDestroy {
             // Set dropdown displays
             this.setDisplayLists(userSettings.circDesk)
         })).subscribe()
+
+        // Make Item Policies dropdown required or not required, based on whether blank item policies are permitted.
+        this.blankItemPolicyValidSubscription = this.inventoryForm.get("allowBlankItemPolicy").valueChanges.subscribe(blankItemPolicyValid => {
+            if (blankItemPolicyValid) {
+                this.inventoryForm.get("expectedPolicyTypes").clearValidators()
+            } else {
+                this.inventoryForm.get("expectedPolicyTypes").setValidators([Validators.required])
+            }
+            this.inventoryForm.get("expectedPolicyTypes").updateValueAndValidity()
+        })
     }
 
     public onSubmit() {
@@ -155,6 +167,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const circDesk = this.inventoryForm.get("circDesk").value
         const expectedItemTypes = this.inventoryForm.get("expectedItemTypes").value
         const expectedPolicyTypes = this.inventoryForm.get("expectedPolicyTypes").value
+        const allowBlankItemPolicy = this.inventoryForm.get("allowBlankItemPolicy").value
         const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
         const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
         const sortBy = this.inventoryForm.get("sortBy").value
@@ -162,7 +175,7 @@ export class ReportForm implements OnInit, OnDestroy {
         const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
         const scanInItems = this.inventoryForm.get("scanInItems").value
 
-        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, limitOrderProblems, reportOnlyProblems, sortBy, sortMultiVolumeByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
+        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, allowBlankItemPolicy, limitOrderProblems, reportOnlyProblems, sortBy, sortMultiVolumeByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
 
         let markAsInventoriedJob: Observable<MarkAsInventoriedJob> = null
         if (markAsInventoried) {
@@ -344,5 +357,6 @@ export class ReportForm implements OnInit, OnDestroy {
         this.enableReportOnlyProblemsSubscription.unsubscribe()
         this.enablePostprocessSubscription.unsubscribe()
         this.reportSetupSubscription.unsubscribe()
+        this.blankItemPolicyValidSubscription.unsubscribe()
     }
 }

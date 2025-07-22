@@ -70,6 +70,7 @@ export class ReportService {
         locationCodes: string[],
         expectedItemTypes: string[],
         expectedPolicyTypes: string[],
+        allowBlankItemPolicy: boolean,
         orderProblemLimit: string,
         reportOnlyProblems: boolean,
         sortBy: string,
@@ -145,7 +146,7 @@ export class ReportService {
 
             // Flag other issues unless "Only CN Order problems" is requested.
             if (orderProblemLimit !== "onlyOrder") {
-                this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, expectedItemTypes);
+                this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, allowBlankItemPolicy, expectedItemTypes);
             } // Finished calculating non-order-related issues
 
             if (new Date(item.lastModifiedDate) < new Date(scanDate) && item.status === "Item not in place" && !item.hasLibraryProblem && !item.hasLocationProblem) {
@@ -166,8 +167,6 @@ export class ReportService {
             typeProblemCount,
             notInPlaceProblemCount
         } = this.getProblemCounts(orderProblemLimit, unsorted);
-
-        console.log(`Problem Count for Orders: ${orderProblemCount}`)
 
         const firstItem = unsorted[0]
         const lastItem = unsorted[unsorted.length - 1]
@@ -235,7 +234,7 @@ export class ReportService {
         };
     }
 
-    protected calculateOtherProblems(item: ProcessedPhysicalItem, locationCodes: string[], libraryCode: string, expectedPolicyTypes: string[], expectedItemTypes: string[]) {
+    protected calculateOtherProblems(item: ProcessedPhysicalItem, locationCodes: string[], libraryCode: string, expectedPolicyTypes: string[], allowBlankItemPolicy: boolean, expectedItemTypes: string[]) {
         if (item.status !== "Item in place") {
             item.hasProblem = true
             item.hasNotInPlaceProblem = `**Not In Place: ${item.processType}**`
@@ -272,12 +271,14 @@ export class ReportService {
         }
 
         if (hasPolicyTypeProblem) {
-            if (item.policyType != "") {
+            const hasPolicyType = !!item.policyType
+            if (hasPolicyType) {
                 item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.hasOwnProperty("policyTypeName") ? item.policyTypeName : item.policyType}; expected ${expectedPolicyTypes}**`
-            } else {
+                item.hasProblem = true
+            } else if (!hasPolicyType && !allowBlankItemPolicy) {
                 item.hasPolicyProblem = "**BLANK ITEM POLICY**"
+                item.hasProblem = true
             }
-            item.hasProblem = true
         }
 
         if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {

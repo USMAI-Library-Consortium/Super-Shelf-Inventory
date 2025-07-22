@@ -20,7 +20,7 @@ describe('ReportService', () => {
     it('should leave items in the correct order', (done: DoneFn) => {
         const ejs = TestBed.inject(ExportJobService);
         ejs.parseReport(exportData, initialBarcodes).subscribe(items => {
-            const reportData = service.generateReport("LC", "EF", ["emain"], ["BOOK"], ["1"], "no", false, "actualOrder", false, null, Date.now().toString(), items)
+            const reportData = service.generateReport("LC", "EF", ["emain"], ["BOOK"], ["1"], false, "no", false, "actualOrder", false, null, Date.now().toString(), items)
             for (const [i, item] of reportData.unsortedItems.entries()) {
                 expect(item.barcode).toEqual(initialBarcodes[i]);
             }
