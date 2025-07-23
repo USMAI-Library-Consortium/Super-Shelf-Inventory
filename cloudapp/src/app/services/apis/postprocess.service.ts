@@ -79,7 +79,8 @@ export class PostprocessService {
             })))
         }
 
-        if (!requests) return of({
+        console.log(`${requests.length} items to scan in...`)
+        if (requests.length === 0) return of({
             successful: 0,
             failed: 0,
             wasRun: true

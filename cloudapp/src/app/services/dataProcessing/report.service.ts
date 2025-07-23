@@ -149,7 +149,9 @@ export class ReportService {
                 this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, allowBlankItemPolicy, expectedItemTypes);
             } // Finished calculating non-order-related issues
 
-            if (new Date(item.lastModifiedDate) < new Date(scanDate) && item.status === "Item not in place" && !item.hasLibraryProblem && !item.hasLocationProblem) {
+
+            if (new Date(Number(item.lastModifiedDate)) < new Date(scanDate) && item.status === "Item not in place" && !item.hasLibraryProblem && !item.hasLocationProblem) {
+                console.log(new Date(Number(item.lastModifiedDate)))
                 item.needsToBeScannedIn = true
                 console.log(`Item ${item.barcode} needs to be scanned in `)
             }
