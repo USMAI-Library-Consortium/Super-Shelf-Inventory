@@ -46,6 +46,7 @@ export class BackupItemExportService {
                     status: null,
                     processType: null,
                     lastModifiedDate: null,
+                    lastLoanDate: null,
                     inTempLocation: null,
                     hasTempLocation: null,
                     requested: null
@@ -87,6 +88,7 @@ export class BackupItemExportService {
             status: response['item_data']['base_status']['desc'],
             processType: response['item_data']['process_type']?.['value'] ?? null,
             lastModifiedDate: response['item_data']['modification_date'] ?? null,
+            lastLoanDate: null,
             inTempLocation: inTempLocation,
             hasTempLocation: null,
             requested: response['item_data']['requested'] ?? false,

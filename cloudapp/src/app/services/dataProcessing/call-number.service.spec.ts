@@ -26,6 +26,7 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
         status: "",
         processType: "",
         lastModifiedDate: "192399124",
+        lastLoanDate: null,
         inTempLocation: false,
         requested: false,
 

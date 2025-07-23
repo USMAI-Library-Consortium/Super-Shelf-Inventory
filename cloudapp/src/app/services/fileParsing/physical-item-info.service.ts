@@ -23,6 +23,7 @@ export interface PhysicalItem {
     status: string | null,
     processType: string | null,
     lastModifiedDate: string | null,
+    lastLoanDate: string | null,
     hasTempLocation: boolean,
     inTempLocation: boolean | null,
     requested: boolean | null
