@@ -2,7 +2,6 @@ import {TestBed} from '@angular/core/testing';
 
 import {ExportJobService} from './export-job.service';
 import {initialBarcodes, exportData} from "./export-job-test-data";
-import {of} from "rxjs";
 
 describe('ExportJobService', () => {
     let service: ExportJobService;
@@ -52,6 +51,14 @@ describe('ExportJobService', () => {
             for (const [i, item] of items.entries()) {
                 expect(`${item.barcode}`).toEqual(initialBarcodes[i]);
             }
+            done()
+        })
+    })
+
+    it("should include last modified date", (done: DoneFn) => {
+        service.parseReport(exportData, initialBarcodes).subscribe(items => {
+            console.log(new Date(Number(items[2].lastLoanDate)).toDateString())
+            expect(new Date(Number(items[2].lastLoanDate)).toDateString().includes("2010")).toBeTrue()
             done()
         })
     })

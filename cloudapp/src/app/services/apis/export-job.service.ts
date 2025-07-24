@@ -149,7 +149,8 @@ export class ExportJobService {
                         policyType: string,
                         status: string,
                         processType: string,
-                        lastModifiedDate: string,
+                        lastModifiedDate: number,
+                        lastLoanDate: number,
                         hasTempLocation: boolean,
                         requested: boolean
                     }
@@ -169,7 +170,8 @@ export class ExportJobService {
                         policyType: row["Policy"],
                         status: row["Status"],
                         processType: row["Process type"],
-                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime().toString() : new Date(row["Creation date"]).getTime().toString(),
+                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime() : new Date(row["Creation date"]).getTime(),
+                        lastLoanDate: row["Last loan"] ? new Date(row["Last loan"]).getTime() : null,
                         hasTempLocation: row["Temp library"] && row["Temp location"],
                         requested: row["Process type"] === "REQUESTED"
                     }
@@ -197,6 +199,7 @@ export class ExportJobService {
                             status: data.status,
                             processType: data.processType,
                             lastModifiedDate: data.lastModifiedDate,
+                            lastLoanDate: data.lastLoanDate,
                             hasTempLocation: data.hasTempLocation,
                             inTempLocation: null,
                             requested: data.requested,
@@ -220,6 +223,7 @@ export class ExportJobService {
                             status: null,
                             processType: null,
                             lastModifiedDate: null,
+                            lastLoanDate: null,
                             inTempLocation: null,
                             hasTempLocation: null,
                             requested: null,

@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
-import {BehaviorSubject, forkJoin, Observable, of} from "rxjs";
+import {BehaviorSubject, EMPTY, forkJoin, Observable, of} from "rxjs";
 import {PhysicalItem} from "../fileParsing/physical-item-info.service";
-import {catchError, map, retry, tap} from "rxjs/operators";
+import {catchError, concatMap, filter, map, retry, switchMap, tap} from "rxjs/operators";
 
 @Injectable({
     providedIn: 'root'
@@ -27,6 +27,8 @@ export class BackupItemExportService {
     private getItemInfo(barcode: string): Observable<PhysicalItem> {
         return this.restService.call(`/items?item_barcode=${barcode}`).pipe(map(result => {
             return this.extractItemDataFromAPIResponse(barcode, result)
+        }), concatMap(item => {
+            return this.getLoanData(item)
         }), catchError(err => {
             if (err.status === 404 || err.status === 400) {
                 return of({
@@ -46,6 +48,7 @@ export class BackupItemExportService {
                     status: null,
                     processType: null,
                     lastModifiedDate: null,
+                    lastLoanDate: null,
                     inTempLocation: null,
                     hasTempLocation: null,
                     requested: null
@@ -86,11 +89,26 @@ export class BackupItemExportService {
             itemMaterialTypeName: response['item_data']['physical_material_type']?.['desc'] ?? null,
             status: response['item_data']['base_status']['desc'],
             processType: response['item_data']['process_type']?.['value'] ?? null,
-            lastModifiedDate: response['item_data']['modification_date'] ?? null,
+            lastModifiedDate: response['item_data']['modification_date'] ? new Date(response['item_data']['modification_date']).getTime() : new Date(response['item_data']['creation_date']).getTime(),
+            lastLoanDate: null,
             inTempLocation: inTempLocation,
             hasTempLocation: null,
             requested: response['item_data']['requested'] ?? false,
         }
+    }
+
+    private getLoanData(item: PhysicalItem): Observable<PhysicalItem> {
+        if (item.processType === "LOAN") {
+            console.log(`Getting loan data for item ${item.barcode}`)
+            return this.restService.call(`/bibs/${item.mmsId}/holdings/${item.holdingId}/items/${item.pid}/loans?order_by=loan_date&direction=desc`).pipe(catchError(err => {
+                console.log(err)
+                item.lastLoanDate = -1
+                return EMPTY // Stop this observable chain
+            }), filter(results => results["total_record_count"] > 0), tap(results => {
+                item.lastLoanDate = new Date(results["item_loan"][0]["loan_date"]).getTime()
+            }), map(_ => item)) // Return the item that's been updated
+        }
+        return of(item)
     }
 
     public reset() {
