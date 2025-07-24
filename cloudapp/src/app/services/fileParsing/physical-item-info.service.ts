@@ -22,8 +22,8 @@ export interface PhysicalItem {
     policyTypeName?: string,
     status: string | null,
     processType: string | null,
-    lastModifiedDate: string | null,
-    lastLoanDate: string | null,
+    lastModifiedDate: number | null,
+    lastLoanDate: number | null | -1,
     hasTempLocation: boolean,
     inTempLocation: boolean | null,
     requested: boolean | null

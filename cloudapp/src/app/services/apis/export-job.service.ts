@@ -149,8 +149,8 @@ export class ExportJobService {
                         policyType: string,
                         status: string,
                         processType: string,
-                        lastModifiedDate: string,
-                        lastLoanDate: string,
+                        lastModifiedDate: number,
+                        lastLoanDate: number,
                         hasTempLocation: boolean,
                         requested: boolean
                     }
@@ -170,8 +170,8 @@ export class ExportJobService {
                         policyType: row["Policy"],
                         status: row["Status"],
                         processType: row["Process type"],
-                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime().toString() : new Date(row["Creation date"]).getTime().toString(),
-                        lastLoanDate: row["Last loan"] ? new Date(row["Last loan"]).getTime().toString() : null,
+                        lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime() : new Date(row["Creation date"]).getTime(),
+                        lastLoanDate: row["Last loan"] ? new Date(row["Last loan"]).getTime() : null,
                         hasTempLocation: row["Temp library"] && row["Temp location"],
                         requested: row["Process type"] === "REQUESTED"
                     }

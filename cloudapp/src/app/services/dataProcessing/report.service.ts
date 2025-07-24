@@ -149,11 +149,12 @@ export class ReportService {
                 this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, allowBlankItemPolicy, expectedItemTypes);
             } // Finished calculating non-order-related issues
 
-
-            if (new Date(Number(item.lastModifiedDate)) < new Date(scanDate) && item.status === "Item not in place" && !item.hasLibraryProblem && !item.hasLocationProblem) {
-                console.log(new Date(Number(item.lastModifiedDate)))
+            const itemNotInPlace = item.status === "Item not in place"
+            const itemModifiedOnOrAfterScanDate = item.lastModifiedDate >= new Date(scanDate).getTime()
+            const itemHasLoanOnOrAfterScanDate = item.processType === "LOAN" && item.lastLoanDate && item.lastLoanDate >= new Date(scanDate).getTime()
+            if (itemNotInPlace && !item.hasLibraryProblem && !item.hasLocationProblem && !itemModifiedOnOrAfterScanDate && !itemHasLoanOnOrAfterScanDate) {
                 item.needsToBeScannedIn = true
-                console.log(`Item ${item.barcode} needs to be scanned in `)
+                console.log(`Item ${item.barcode} needs to be scanned in: Last Modified ${item.lastModifiedDate}, last loan ${item.lastLoanDate}`)
             }
 
             item.correctLocation = index + 1

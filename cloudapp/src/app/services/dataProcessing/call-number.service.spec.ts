@@ -25,7 +25,7 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
         policyType: "",
         status: "",
         processType: "",
-        lastModifiedDate: "192399124",
+        lastModifiedDate: 192399124,
         lastLoanDate: null,
         inTempLocation: false,
         requested: false,
