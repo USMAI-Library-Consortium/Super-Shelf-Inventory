@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {CloudAppRestService} from "@exlibris/exl-cloudapp-angular-lib";
-import {from, Observable, of, Subject} from "rxjs";
+import {Observable, of, Subject, scheduled, asyncScheduler} from "rxjs";
 import {PhysicalItem} from "../fileParsing/physical-item-info.service";
 import {concatMap, map, tap, toArray} from "rxjs/operators";
 
@@ -35,7 +35,7 @@ export class IndividualItemInfoService {
     public pullTempLocationItemInfo(items: PhysicalItem[]): Observable<PhysicalItem[]> {
         const total = items.filter(item => item.hasTempLocation).length
         let completed = 0
-        return from(items).pipe(concatMap(item => {
+        return scheduled(items, asyncScheduler).pipe(concatMap(item => {
             return item.hasTempLocation ? this.fetchTempLocationInfo(item).pipe(tap(item => completed += 1), tap(item => {
                 this.getIndividualItemInfoProgress$.next({
                     completed,
