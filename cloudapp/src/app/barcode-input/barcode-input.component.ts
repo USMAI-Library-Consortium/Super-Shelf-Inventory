@@ -27,7 +27,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public dataLoadRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public previousRun: PreviousRun = null;
-    public mode: string = "api"
+    public mode: string = "job"
 
     private enableUseCachedResultsSubscription: Subscription;
     private jobModeSubscription: Subscription;
@@ -62,7 +62,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
             barcodeXLSXFile: [null, Validators.required],
             scanDate: [null, Validators.required],
             useCachedResults: [false, Validators.required],
-            mode: ["api", Validators.required],
+            mode: ["job", Validators.required],
         });
 
         this.enableUseCachedResultsSubscription =
