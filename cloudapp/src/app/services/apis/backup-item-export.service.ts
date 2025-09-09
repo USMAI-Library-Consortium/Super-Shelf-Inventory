@@ -30,32 +30,28 @@ export class BackupItemExportService {
         }), concatMap(item => {
             return this.getLoanData(item)
         }), catchError(err => {
-            if (err.status === 404 || err.status === 400) {
-                return of({
-                    barcode,
-                    existsInAlma: false,
-                    source: 'api',
-                    title: null,
-                    description: null,
-                    mmsId: null,
-                    holdingId: null,
-                    pid: null,
-                    callNumber: null,
-                    library: null,
-                    location: null,
-                    policyType: null,
-                    itemMaterialType: null,
-                    status: null,
-                    processType: null,
-                    lastModifiedDate: null,
-                    lastLoanDate: null,
-                    inTempLocation: null,
-                    hasTempLocation: null,
-                    requested: null
-                })
-            } else {
-                throw err
-            }
+            return of({
+                barcode,
+                existsInAlma: false,
+                source: 'api',
+                title: null,
+                description: null,
+                mmsId: null,
+                holdingId: null,
+                pid: null,
+                callNumber: null,
+                library: null,
+                location: null,
+                policyType: null,
+                itemMaterialType: null,
+                status: null,
+                processType: null,
+                lastModifiedDate: null,
+                lastLoanDate: null,
+                inTempLocation: null,
+                hasTempLocation: null,
+                requested: null
+            })
         }))
     }
 

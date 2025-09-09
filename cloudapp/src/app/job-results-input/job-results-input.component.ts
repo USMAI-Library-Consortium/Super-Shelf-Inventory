@@ -57,13 +57,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
             this.router.navigate(["configure-report"])
         }, err => {
             console.log(err)
-            let message: string = `Issue parsing item info... ${err.message}. Resetting run.`
-            if (err.status === 999 || err.status === 500) message = "Fatal: ExLibris Service Error. We're working with ExLibris on this; try a smaller file, if this doesn't work you may have to wait to use the app."
-            this.router.navigate(["/"], {
-                queryParams: {
-                    errorMessage: message
-                }
-            })
         })
     }
 

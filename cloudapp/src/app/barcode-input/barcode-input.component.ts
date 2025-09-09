@@ -170,13 +170,6 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
             this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()).subscribe(items => {
                 this.piis.physicalItems = items
                 this.router.navigate(["configure-report"])
-            }, error => {
-                // Reset the component
-                if (error.status === 999 || error.status === 500) {
-                    console.log("999 Error")
-                    this.alert.error("ExLibris Service Error: Try 'Large Dataset' optimization mode.")
-                }
-                this.reset("job")
             })
         } else {
             if (useCachedResults) {
