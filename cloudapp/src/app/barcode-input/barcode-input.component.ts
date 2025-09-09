@@ -56,6 +56,8 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         console.log(errorMessage)
         if (errorMessage) this.alert.error(errorMessage);
 
+        this.alert.info("Optimize for: Simplicity has been repaired; it may become the default in the future", {delay: 8000})
+
         this.resetServices()
 
         this.barcodeForm = this.fb.group({
