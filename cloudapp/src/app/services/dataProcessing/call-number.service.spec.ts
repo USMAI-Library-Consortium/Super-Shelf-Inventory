@@ -37,6 +37,7 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
         actualLocation: null,
         actualLocationInUnsortablesRemoved: null,
         correctLocation: null,
+        hasUnparsableCallNumberProblem: null,
         hasOrderProblem: null,
         hasTemporaryLocationProblem: null,
         hasLibraryProblem: null,

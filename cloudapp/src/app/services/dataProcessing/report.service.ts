@@ -12,6 +12,7 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
     actualLocation: number | null,
     actualLocationInUnsortablesRemoved: number | null,
     correctLocation: number | null,
+    hasUnparsableCallNumberProblem: string | null,
     hasOrderProblem: string | null,
     hasTemporaryLocationProblem: string | null,
     hasLibraryProblem: string | null,
@@ -31,6 +32,8 @@ export interface ReportData {
     circDesk: string,
     reportOnlyProblems: boolean,
     orderProblemLimit: string,
+    notInAlmaProblemCount: number | string,
+    unparsableCallNumberProblemCount: number | string,
     orderProblemCount: number | string,
     temporaryLocationProblemCount: number | string,
     libraryProblemCount: number | string,
@@ -92,6 +95,7 @@ export class ReportService {
                 actualLocation: null,
                 actualLocationInUnsortablesRemoved: null,
                 correctLocation: null,
+                hasUnparsableCallNumberProblem: null,
                 hasLibraryProblem: null,
                 hasLocationProblem: null,
                 hasTemporaryLocationProblem: null,
@@ -119,7 +123,9 @@ export class ReportService {
             // Determine whether the item is sortable
             if (item.callSort === "~" || item.callSort === " " || item.callSort === "") {
                 item.sortable = false
-                item.hasOrderProblem = item.existsInAlma ? "**UNPARSABLE CALL NUMBER**" : "**NOT IN ALMA**"
+                if (item.existsInAlma) {
+                    item.hasUnparsableCallNumberProblem = "**UNPARSABLE CALL NUMBER**"
+                }
             }
             unsorted.push(item)
         })
@@ -147,20 +153,29 @@ export class ReportService {
             // Flag other issues unless "Only CN Order problems" is requested.
             if (orderProblemLimit !== "onlyOrder") {
                 this.calculateOtherProblems(item, locationCodes, libraryCode, expectedPolicyTypes, allowBlankItemPolicy, expectedItemTypes);
+
+                // ONLY run the scanning in code if the 'onlyOrder' function is not activated -- this is because these items WILL NOT SHOW
+                // on the report in that mode. That mode is designed for only order, NOT for fixing not in place issues.
+                const itemNotInPlace = item.status === "Item not in place"
+                const itemModifiedOnOrAfterScanDate = item.lastModifiedDate >= new Date(scanDate).getTime()
+                const itemHasLoanOnOrAfterScanDate = item.processType === "LOAN" && item.lastLoanDate && item.lastLoanDate >= new Date(scanDate).getTime()
+                if (itemNotInPlace && !item.hasLibraryProblem && !item.hasLocationProblem && !itemModifiedOnOrAfterScanDate && !itemHasLoanOnOrAfterScanDate) {
+                    item.needsToBeScannedIn = true
+                    console.log(`Item ${item.barcode} needs to be scanned in: Last Modified ${item.lastModifiedDate}, last loan ${item.lastLoanDate}`)
+                }
             } // Finished calculating non-order-related issues
 
-            const itemNotInPlace = item.status === "Item not in place"
-            const itemModifiedOnOrAfterScanDate = item.lastModifiedDate >= new Date(scanDate).getTime()
-            const itemHasLoanOnOrAfterScanDate = item.processType === "LOAN" && item.lastLoanDate && item.lastLoanDate >= new Date(scanDate).getTime()
-            if (itemNotInPlace && !item.hasLibraryProblem && !item.hasLocationProblem && !itemModifiedOnOrAfterScanDate && !itemHasLoanOnOrAfterScanDate) {
-                item.needsToBeScannedIn = true
-                console.log(`Item ${item.barcode} needs to be scanned in: Last Modified ${item.lastModifiedDate}, last loan ${item.lastLoanDate}`)
+            // These issues should be shown on ALL modes
+            if (!item.existsInAlma || item.hasUnparsableCallNumberProblem) {
+                item.hasProblem = true
             }
 
             item.correctLocation = index + 1
         })
 
         const {
+            notInAlmaProblemCount,
+            unparsableCallNumberProblemCount,
             orderProblemCount,
             temporaryLocationProblemCount,
             libraryProblemCount,
@@ -183,6 +198,8 @@ export class ReportService {
             circDesk: circDeskCode,
             reportOnlyProblems,
             orderProblemLimit,
+            notInAlmaProblemCount,
+            unparsableCallNumberProblemCount,
             orderProblemCount,
             temporaryLocationProblemCount,
             libraryProblemCount,
@@ -200,7 +217,12 @@ export class ReportService {
     }
 
     protected getProblemCounts(orderProblemLimit: string, items: ProcessedPhysicalItem[]) {
-        // Get order problems
+        const notInAlmaProblemCount = items.reduce((acc, item) => {
+            return item.existsInAlma ? acc : acc + 1
+        }, 0)
+        const unparsableCallNumberProblemCount = items.reduce((acc, item) => {
+            return item.hasUnparsableCallNumberProblem ? acc + 1 : acc;
+        }, 0)
         const orderProblemCount = (orderProblemLimit !== "onlyOther") ? items.reduce((acc, item) => {
             return item.hasOrderProblem && item.hasOrderProblem !== "**Multi-Volume Order Not Checked**" ? acc + 1 : acc
         }, 0) : "n/a"
@@ -226,6 +248,8 @@ export class ReportService {
             return item.hasNotInPlaceProblem ? acc + 1 : acc
         }, 0) : "n/a"
         return {
+            notInAlmaProblemCount,
+            unparsableCallNumberProblemCount,
             orderProblemCount,
             temporaryLocationProblemCount,
             libraryProblemCount,
@@ -356,6 +380,7 @@ export class ReportService {
 
         const formattedReport = arrayToDisplay.filter((item) => {
             if (reportData.reportOnlyProblems) {
+                if (!item.existsInAlma) return true
                 return item.hasProblem
             } else return true
         }).map(item => {
@@ -382,19 +407,29 @@ export class ReportService {
                 "Title": item.title ? (item.title.length > 65 ? item.title.slice(0, 62) + "..." : item.title) : "",
             }
 
+            // These two issues should be reported on by all modes
+            const notInAlmaOrUnparsableCallNumIssue = [item.existsInAlma ? "" : "**NOT IN ALMA**", item.hasUnparsableCallNumberProblem].filter(val => {
+                return !!val
+            }).join(" || ")
+
+            // If the report shows order issues at all
             if (!(reportData.orderProblemLimit === "onlyOther")) {
                 reportCols = {
                     ...reportCols,
-                    "Order Issues": item.hasOrderProblem
+                    "Order Issues": [item.hasOrderProblem, notInAlmaOrUnparsableCallNumIssue].filter(val => {
+                        return !!val
+                    }).join(" || ")
                 }
             }
 
+            // If the report shows other issues at all
             if (!(reportData.orderProblemLimit === "onlyOrder")) {
+                let otherProblems = [item.hasLibraryProblem, item.hasLocationProblem, item.hasNotInPlaceProblem, item.hasTemporaryLocationProblem, item.hasPolicyProblem, item.hasRequestProblem, item.hasTypeProblem, notInAlmaOrUnparsableCallNumIssue].filter(val => {
+                    return !!val
+                }).join(" || ")
                 reportCols = {
                     ...reportCols,
-                    "Other Problems": [item.hasLibraryProblem, item.hasLocationProblem, item.hasNotInPlaceProblem, item.hasTemporaryLocationProblem, item.hasPolicyProblem, item.hasRequestProblem, item.hasTypeProblem].filter(val => {
-                        return !!val
-                    }).join(" || "),
+                    "Other Problems": otherProblems,
                     "Needs to be Scanned In": item.needsToBeScannedIn ? true : "",
                     "Scanned In": item.needsToBeScannedIn ? item.wasScannedIn : ""
                 }
