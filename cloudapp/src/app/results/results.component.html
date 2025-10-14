@@ -13,14 +13,12 @@
     </div>
     <br>
     <h2>Problem Summary</h2>
+    <p>Not In Alma: {{reportData.notInAlmaProblemCount}}</p>
+    <p>Unparsable Call Number: {{reportData.unparsableCallNumberProblemCount}}</p>
     <span *ngIf="reportData.orderProblemLimit !== 'onlyOther'">
-        <p>Not In Alma: {{reportData.notInAlmaProblemCount}}</p>
-        <p>Unparsable Call Number: {{reportData.unparsableCallNumberProblemCount}}</p>
         <p>Order Issues: {{ reportData.orderProblemCount }}</p>
     </span>
     <span *ngIf="reportData.orderProblemLimit !== 'onlyOrder'">
-        <p>Not In Alma: {{reportData.notInAlmaProblemCount}}</p>
-        <p>Unparsable Call Number: {{reportData.unparsableCallNumberProblemCount}}</p>
         <p>Wrong Library: {{ reportData.libraryProblemCount }}</p>
         <p>Wrong Location: {{ reportData.locationProblemCount }}</p>
         <p>Policy Issue: {{ reportData.policyProblemCount }}</p>
