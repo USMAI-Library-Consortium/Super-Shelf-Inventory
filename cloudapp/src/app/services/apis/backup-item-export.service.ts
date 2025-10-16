@@ -35,11 +35,11 @@ export class BackupItemExportService {
                 existsInAlma: false,
                 source: 'api',
                 title: null,
-                description: null,
+                description: "",
                 mmsId: null,
                 holdingId: null,
                 pid: null,
-                callNumber: null,
+                callNumber: "",
                 library: null,
                 location: null,
                 policyType: null,
@@ -55,13 +55,13 @@ export class BackupItemExportService {
         }))
     }
 
-    private getActiveValue(inTempLocation: boolean, permanentValue: string | null, tempValue: string | null): string {
+    private getActiveValue(inTempLocation: boolean, permanentValue: string | null, tempValue: string | null): string  | null {
         if (!inTempLocation) return permanentValue
         if (tempValue) return tempValue
         return permanentValue
     };
 
-    public extractItemDataFromAPIResponse(barcode: string, response: object): PhysicalItem {
+    public extractItemDataFromAPIResponse(barcode: string, response: any): PhysicalItem {
         // Modified for type-safety with help from Claude 3.7 Sonnet
         const inTempLocation = Boolean(response['holding_data']['in_temp_location']);
 
@@ -69,22 +69,22 @@ export class BackupItemExportService {
             barcode,
             existsInAlma: true,
             source: 'api',
-            title: response['bib_data']['title'] ?? null,
-            description: response['item_data']['description'] ?? null,
-            mmsId: response['bib_data']['mms_id'] ?? null,
-            holdingId: response['holding_data']['holding_id'] ?? null,
-            pid: response['item_data']['pid'] ?? null,
-            callNumber: response['holding_data']['call_number'] ?? null,
-            library: this.getActiveValue(inTempLocation, response['item_data']['library']?.['value'] ?? null, response['holding_data']['temp_library']?.['value'] ?? null),
-            libraryName: this.getActiveValue(inTempLocation, response['item_data']['library']?.['desc'] ?? null, response['holding_data']['temp_library']?.['desc'] ?? null),
-            location: this.getActiveValue(inTempLocation, response['item_data']['location']?.['value'] ?? null, response['holding_data']['temp_location']?.['value'] ?? null),
-            locationName: this.getActiveValue(inTempLocation, response['item_data']['location']?.['desc'] ?? null, response['holding_data']['temp_location']?.['desc'] ?? null),
-            policyType: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['value'] ?? null, response['holding_data']['temp_policy']?.['value'] ?? null),
-            policyTypeName: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['desc'] ?? null, response['holding_data']['temp_policy']?.['desc'] ?? null),
-            itemMaterialType: response['item_data']['physical_material_type']?.['value'] ?? null,
-            itemMaterialTypeName: response['item_data']['physical_material_type']?.['desc'] ?? null,
+            title: response['bib_data']['title'] ?? "",
+            description: response['item_data']['description'] ?? "",
+            mmsId: response['bib_data']['mms_id'] ?? "",
+            holdingId: response['holding_data']['holding_id'] ?? "",
+            pid: response['item_data']['pid'] ?? "",
+            callNumber: response['holding_data']['call_number'] ?? "",
+            library: this.getActiveValue(inTempLocation, response['item_data']['library']?.['value'] ?? "", response['holding_data']['temp_library']?.['value'] ?? ""),
+            libraryName: this.getActiveValue(inTempLocation, response['item_data']['library']?.['desc'] ?? "", response['holding_data']['temp_library']?.['desc'] ?? ""),
+            location: this.getActiveValue(inTempLocation, response['item_data']['location']?.['value'] ?? "", response['holding_data']['temp_location']?.['value'] ?? ""),
+            locationName: this.getActiveValue(inTempLocation, response['item_data']['location']?.['desc'] ?? "", response['holding_data']['temp_location']?.['desc'] ?? ""),
+            policyType: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['value'] ?? "", response['holding_data']['temp_policy']?.['value'] ?? ""),
+            policyTypeName: this.getActiveValue(inTempLocation, response['item_data']['policy']?.['desc'] ?? "", response['holding_data']['temp_policy']?.['desc'] ?? ""),
+            itemMaterialType: response['item_data']['physical_material_type']?.['value'] ?? "",
+            itemMaterialTypeName: response['item_data']['physical_material_type']?.['desc'] ?? "",
             status: response['item_data']['base_status']['desc'],
-            processType: response['item_data']['process_type']?.['value'] ?? null,
+            processType: response['item_data']['process_type']?.['value'] ?? "",
             lastModifiedDate: response['item_data']['modification_date'] ? new Date(response['item_data']['modification_date']).getTime() : new Date(response['item_data']['creation_date']).getTime(),
             lastLoanDate: null,
             inTempLocation: inTempLocation,

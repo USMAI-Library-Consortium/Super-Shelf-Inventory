@@ -12,7 +12,7 @@ import {Router} from "@angular/router";
     styleUrls: ['./administration.component.scss']
 })
 export class AdministrationComponent implements OnInit, OnDestroy {
-    configurationForm: FormGroup;
+    configurationForm!: FormGroup;
 
     // Whether a processing action (loading, saving) is happening
     loading$: BehaviorSubject<boolean> = new BehaviorSubject(true);
@@ -23,11 +23,11 @@ export class AdministrationComponent implements OnInit, OnDestroy {
     // user permissions
     private formGroupIsReady$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
-    private saveConfigSubscription: Subscription;
-    private loadConfigSubscription: Subscription;
-    private isAdminSubscription: Subscription;
-    private canSaveSubscription: Subscription; // We want to be able to click save only when there is no loading and when user is admin
-    private disableFieldsSubscription: Subscription;
+    private saveConfigSubscription: Subscription | undefined;
+    private loadConfigSubscription: Subscription | undefined;
+    private isAdminSubscription: Subscription | undefined;
+    private canSaveSubscription: Subscription | undefined; // We want to be able to click save only when there is no loading and when user is admin
+    private disableFieldsSubscription: Subscription | undefined;
 
     constructor(private configService: CloudAppConfigService, public eventService: CloudAppEventsService, private router: Router) {
     }
@@ -96,8 +96,8 @@ export class AdministrationComponent implements OnInit, OnDestroy {
             }
         }), filter(data => data.ready)).subscribe(data => {
             if (!data.isAdmin) {
-                this.configurationForm.get("inventoryField").disable()
-                this.configurationForm.get("allowScanIn").disable()
+                this.configurationForm.get("inventoryField")!.disable()
+                this.configurationForm.get("allowScanIn")!.disable()
             }
             this.loading$.next(false)
         })
@@ -105,10 +105,10 @@ export class AdministrationComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         if (this.saveConfigSubscription) this.saveConfigSubscription.unsubscribe();
-        this.loadConfigSubscription.unsubscribe();
-        this.isAdminSubscription.unsubscribe();
-        this.canSaveSubscription.unsubscribe();
-        this.disableFieldsSubscription.unsubscribe();
+        this.loadConfigSubscription?.unsubscribe();
+        this.isAdminSubscription?.unsubscribe();
+        this.canSaveSubscription?.unsubscribe();
+        this.disableFieldsSubscription?.unsubscribe();
     }
 
     onBack() {

@@ -10,7 +10,7 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
     normalizedDescription: string | null,
     sortable: boolean,
     actualLocation: number | null,
-    actualLocationInUnsortablesRemoved: number | null,
+    actualLocationInUnsortablesRemovedList: number | undefined,
     correctLocation: number | null,
     hasUnparsableCallNumberProblem: string | null,
     hasOrderProblem: string | null,
@@ -29,7 +29,7 @@ export interface ReportData {
     outputFilename: string,
     sortBy: string,
     library: string,
-    circDesk: string,
+    circDesk: string | null,
     reportOnlyProblems: boolean,
     orderProblemLimit: string,
     notInAlmaProblemCount: number | string,
@@ -52,8 +52,8 @@ export interface ReportData {
     providedIn: "root",
 })
 export class ReportService {
-    private report: ReportData = null;
-    physicalItemsSubscription: Subscription = null
+    private report: ReportData | undefined;
+    private physicalItemsSubscription: Subscription | undefined;
 
     constructor(private callNumberService: CallNumberService) {
     }
@@ -64,7 +64,7 @@ export class ReportService {
 
     reset() {
         if (this.physicalItemsSubscription) this.physicalItemsSubscription.unsubscribe()
-        this.report = null;
+        this.report = undefined;
     }
 
     generateReport(
@@ -82,7 +82,7 @@ export class ReportService {
         scanDate: string,
         physicalItems: PhysicalItem[]
     ): ReportData {
-        this.report = null
+        this.report = undefined
         const unsorted: ProcessedPhysicalItem[] = []
 
         physicalItems.map((physicalItem: PhysicalItem) => {
@@ -93,7 +93,7 @@ export class ReportService {
                 normalizedDescription: null,
                 sortable: true,
                 actualLocation: null,
-                actualLocationInUnsortablesRemoved: null,
+                actualLocationInUnsortablesRemovedList: undefined,
                 correctLocation: null,
                 hasUnparsableCallNumberProblem: null,
                 hasLibraryProblem: null,
@@ -134,7 +134,7 @@ export class ReportService {
             return item.sortable
         })
         unsortedWithUnsortablesRemoved.forEach((item, i) => {
-            item.actualLocationInUnsortablesRemoved = i + 1
+            item.actualLocationInUnsortablesRemovedList = i + 1
         })
 
         // Create a sorted array.
@@ -157,7 +157,7 @@ export class ReportService {
                 // ONLY run the scanning in code if the 'onlyOrder' function is not activated -- this is because these items WILL NOT SHOW
                 // on the report in that mode. That mode is designed for only order, NOT for fixing not in place issues.
                 const itemNotInPlace = item.status === "Item not in place"
-                const itemModifiedOnOrAfterScanDate = item.lastModifiedDate >= new Date(scanDate).getTime()
+                const itemModifiedOnOrAfterScanDate = (item.lastModifiedDate ? item.lastModifiedDate : 0) >= new Date(scanDate).getTime()
                 const itemHasLoanOnOrAfterScanDate = item.processType === "LOAN" && item.lastLoanDate && item.lastLoanDate >= new Date(scanDate).getTime()
                 if (itemNotInPlace && !item.hasLibraryProblem && !item.hasLocationProblem && !itemModifiedOnOrAfterScanDate && !itemHasLoanOnOrAfterScanDate) {
                     item.needsToBeScannedIn = true
@@ -188,8 +188,10 @@ export class ReportService {
 
         const firstItem = unsorted[0]
         const lastItem = unsorted[unsorted.length - 1]
-        const firstCallNum = firstItem.callNumber.replace(".", "").replace(" ", "")
-        const lastCallNum = lastItem.callNumber.replace(".", "").replace(" ", "")
+        let firstCallNum = firstItem.callNumber ? firstItem.callNumber.replace(".", "").replace(" ", "") : ""
+        firstCallNum = firstCallNum.padEnd(5, "_")
+        let lastCallNum = lastItem.callNumber ? lastItem.callNumber.replace(".", "").replace(" ", "") : ""
+        lastCallNum = lastCallNum.padEnd(5, "_")
         const outputFilename = `Shelflist_${libraryCode}_${locationCodes.join("_")}_${firstCallNum.substring(0, 4)}_${lastCallNum.substring(0, 4)}_${new Date().toISOString().slice(0, 10)}.xlsx`
         this.report = {
             outputFilename,
@@ -272,45 +274,44 @@ export class ReportService {
             item.hasRequestProblem = "**ITEM HAS REQUEST**"
         }
 
-        const hasLocationProblem = !locationCodes.includes(item.location)
+        const hasLocationProblem = !item.location || !locationCodes.includes(item.location)
         const hasLibraryProblem = item.library !== libraryCode
-        const hasPolicyTypeProblem = expectedPolicyTypes.length > 0 && !expectedPolicyTypes.includes(item.policyType)
+        const hasPolicyTypeProblem = item.policyType ? !expectedPolicyTypes.includes(item.policyType) : !allowBlankItemPolicy
         // First, deal with items that should be in a temp location but are not
         if (item.inTempLocation) {
             // Item SHOULD BE in temp location if Library or Location is wrong here.
             if (hasLibraryProblem || hasLocationProblem) {
                 item.hasProblem = true
-                item.hasTemporaryLocationProblem = `**Item should be in temp location '${item.hasOwnProperty('locationName') ? item.locationName : item.location}' in library '${item.hasOwnProperty("libraryName") ? item.libraryName : item.library}'**`
+                item.hasTemporaryLocationProblem = `**Item should be in temp location '${item.hasOwnProperty('locationName') && item["locationName"] ? item.locationName : item.location}' in library '${item.hasOwnProperty("libraryName") && item["libraryName"] ? item.libraryName : item.library}'**`
                 return
             }
         }
 
         if (hasLocationProblem) {
             item.hasProblem = true
-            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}${item.hasOwnProperty("locationName") ? " (" + item.locationName + ")": ""}; expected any of [${locationCodes.join(", ")}]**`
+            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}${item.hasOwnProperty("locationName") && item["locationName"] ? " (" + item.locationName + ")": ""}; expected any of [${locationCodes.join(", ")}]**`
             item.hasOrderProblem = null
         }
 
         if (hasLibraryProblem) {
             item.hasProblem = true
-            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.hasOwnProperty("libraryName") ? item.libraryName : item.library}; expected ${libraryCode}**`
+            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.hasOwnProperty("libraryName") && item["libraryName"] ? item.libraryName : item.library}; expected ${libraryCode}**`
             item.hasOrderProblem = null
         }
 
         if (hasPolicyTypeProblem) {
-            const hasPolicyType = !!item.policyType
-            if (hasPolicyType) {
-                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.hasOwnProperty("policyTypeName") ? item.policyTypeName : item.policyType}; expected ${expectedPolicyTypes}**`
+            if (item.policyType) {
+                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.hasOwnProperty("policyTypeName") && item["policyTypeName"] ? item.policyTypeName : item.policyType}; expected any of ${expectedPolicyTypes.join(", ")}**`
                 item.hasProblem = true
-            } else if (!hasPolicyType && !allowBlankItemPolicy) {
+            } else {
                 item.hasPolicyProblem = "**BLANK ITEM POLICY**"
                 item.hasProblem = true
             }
         }
 
-        if (expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
-            if (item.itemMaterialType !== "") {
-                item.hasTypeProblem = `**WRONG TYPE: ${item.hasOwnProperty("itemMaterialTypeName" ? item.itemMaterialTypeName : item.itemMaterialType)}; expected any of [${expectedItemTypes.join(", ")}]**`
+        if (!item.itemMaterialType || expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
+            if (item.itemMaterialType) {
+                item.hasTypeProblem = `**WRONG TYPE: ${item.hasOwnProperty("itemMaterialTypeName") && item["itemMaterialTypeName"] ? item.itemMaterialTypeName : item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
             } else {
                 item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
             }
@@ -320,7 +321,7 @@ export class ReportService {
 
     protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[], sortMultiVolumeByDescription: boolean) {
         if (item.existsInAlma) {
-            const actualLocationIndex = item.actualLocationInUnsortablesRemoved - 1
+            const actualLocationIndex = item.actualLocationInUnsortablesRemovedList! - 1
             const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
 
             const correctPreviousItemCallNum = index > 0 ? sorted[index - 1].callNumber : "LOCATION START"

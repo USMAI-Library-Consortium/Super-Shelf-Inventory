@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
-import {catchError, filter, map, retry, switchMap, take, tap} from "rxjs/operators";
-import {BehaviorSubject, forkJoin, Observable, of, Subject} from "rxjs";
+import {catchError, map, retry, switchMap, tap} from "rxjs/operators";
+import {BehaviorSubject, forkJoin, Observable, of, Subject, throwError} from "rxjs";
 import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 
 
@@ -23,12 +23,12 @@ export class SetService {
     public addMembersToSetProgress$: Subject<AddMembersToSetProgress> = new Subject()
     public addMembersToSetDone$: Subject<Boolean> = new Subject()
 
-    private setInfo$: BehaviorSubject<AlmaSet | null> = new BehaviorSubject(null);
+    private setInfo$: BehaviorSubject<AlmaSet | null> = new BehaviorSubject<AlmaSet | null>(null);
 
     constructor(private restService: CloudAppRestService, private alert: AlertService) {
     }
 
-    public createSet(barcodes: string[]): Observable<AlmaSet | null> {
+    public createSet(barcodes: string[]): Observable<AlmaSet> {
         return this.createBaseSet().pipe(switchMap(set => {
             return this.addMembersToSet(set, barcodes).pipe(tap(result => {
                 this.setInfo$.next(result)
@@ -91,7 +91,7 @@ export class SetService {
         return {setName, newSet};
     }
 
-    private addMembersToSet(setInfo: AlmaSet, barcodes: string[]): Observable<AlmaSet | null> {
+    private addMembersToSet(setInfo: AlmaSet, barcodes: string[]): Observable<AlmaSet> {
         const addSetMemberBodies = this.generateAddMembersBodies(barcodes);
 
         const addMemberToSetJobs = addSetMemberBodies.map(body => {
@@ -119,13 +119,11 @@ export class SetService {
         })
 
         return forkJoin(addMemberToSetJobs).pipe(map(results => {
-            let successful = true
             results.forEach(result => {
-                if (!result) successful = false
+                if (!result) throwError(() => new Error("Failed to add set members to set."))
             })
             this.addMembersToSetDone$.next(true)
-            if (successful) return setInfo
-            else return null
+            return setInfo
         }))
     }
 

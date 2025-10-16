@@ -129,7 +129,7 @@
             </div>
 
             <!-- Circ Desk Input -->
-            <mat-form-field *ngIf="inventoryForm.get('scanInItems').value">
+            <mat-form-field *ngIf="inventoryForm.get('scanInItems')!.value">
                 <mat-label>Circ Desk for Scan In Operation</mat-label>
                 <input matInput formControlName="circDesk" placeholder="Circ Desk Code">
             </mat-form-field>
@@ -150,7 +150,7 @@
         <div *ngIf="postProcessService.scanInJobProgress$ | async as scanInJobProgress">
             <p>Items Scanned: {{scanInJobProgress.scanned}}/{{scanInJobProgress.total}}</p>
         </div>
-        <div *ngIf="this.inventoryForm.get('markAsInventoried').value">
+        <div *ngIf="this.inventoryForm.get('markAsInventoried')!.value">
             <p *ngIf="(postProcessService.markAsInventoriedStarted$ | async ) as inventoryJob; else notStarted">Mark As Inventoried: Started in field '{{inventoryJob.markAsInventoriedField}}'</p>
             <ng-template #notStarted>
                 <p>Mark As Inventoried: Not Started</p>

@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -16,31 +16,25 @@ import { RunInfoComponent } from './run-info/run-info.component';
 import { ResultsComponent } from './results/results.component';
 import { AdministrationComponent } from './administration/administration.component';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    MainComponent,
-    ReportForm,
-    BarcodeInputComponent,
-    JobResultsInputComponent,
-    RunInfoComponent,
-    ResultsComponent,
-    AdministrationComponent,
-  ],
-  imports: [
-    MaterialModule,
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    HttpClientModule,
-    AlertModule,
-    FormsModule,
-    ReactiveFormsModule,     
-    CloudAppTranslateModule.forRoot(),
-  ],
-  providers: [
-    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } },
-  ],
-  bootstrap: [AppComponent]
-})
+@NgModule({ declarations: [
+        AppComponent,
+        MainComponent,
+        ReportForm,
+        BarcodeInputComponent,
+        JobResultsInputComponent,
+        RunInfoComponent,
+        ResultsComponent,
+        AdministrationComponent,
+    ],
+    bootstrap: [AppComponent], imports: [MaterialModule,
+        BrowserModule,
+        BrowserAnimationsModule,
+        AppRoutingModule,
+        AlertModule,
+        FormsModule,
+        ReactiveFormsModule,
+        CloudAppTranslateModule.forRoot()], providers: [
+        { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'fill' } },
+        provideHttpClient(withInterceptorsFromDi()),
+    ] })
 export class AppModule { }
