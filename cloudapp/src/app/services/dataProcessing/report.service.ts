@@ -282,26 +282,28 @@ export class ReportService {
             // Item SHOULD BE in temp location if Library or Location is wrong here.
             if (hasLibraryProblem || hasLocationProblem) {
                 item.hasProblem = true
-                item.hasTemporaryLocationProblem = `**Item should be in temp location '${item.hasOwnProperty('locationName') && item["locationName"] ? item.locationName : item.location}' in library '${item.hasOwnProperty("libraryName") && item["libraryName"] ? item.libraryName : item.library}'**`
+                const correctTempLocation = item.location! + (item.hasOwnProperty('locationName') && item["locationName"] ? ` (${item.locationName})` : "")
+                const correctLibrary = item.library! + (item.hasOwnProperty("libraryName") && item["libraryName"] ? ` (${item.libraryName})` : "")
+                item.hasTemporaryLocationProblem = `**Item should be in temp location ${correctTempLocation} in library ${correctLibrary}**`
                 return
             }
         }
 
         if (hasLocationProblem) {
             item.hasProblem = true
-            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}${item.hasOwnProperty("locationName") && item["locationName"] ? " (" + item.locationName + ")": ""}; expected any of [${locationCodes.join(", ")}]**`
+            item.hasLocationProblem = `**WRONG LOCATION: ${item.location}${item.hasOwnProperty("locationName") && item["locationName"] ? " (" + item.locationName + ")" : ""}; expected any of [${locationCodes.join(", ")}]**`
             item.hasOrderProblem = null
         }
 
         if (hasLibraryProblem) {
             item.hasProblem = true
-            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.hasOwnProperty("libraryName") && item["libraryName"] ? item.libraryName : item.library}; expected ${libraryCode}**`
+            item.hasLibraryProblem = `**WRONG LIBRARY: ${item.library}${item.hasOwnProperty("libraryName") && item["libraryName"] ? " (" + item.libraryName + ")" : ""}; expected ${libraryCode}**`
             item.hasOrderProblem = null
         }
 
         if (hasPolicyTypeProblem) {
             if (item.policyType) {
-                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.hasOwnProperty("policyTypeName") && item["policyTypeName"] ? item.policyTypeName : item.policyType}; expected any of ${expectedPolicyTypes.join(", ")}**`
+                item.hasPolicyProblem = `**WRONG ITEM POLICY: ${item.policyType}${item.hasOwnProperty("policyTypeName") && item["policyTypeName"] ? " (" + item.policyTypeName + ")" : ""}; expected any of [${expectedPolicyTypes.join(", ")}]**`
                 item.hasProblem = true
             } else {
                 item.hasPolicyProblem = "**BLANK ITEM POLICY**"
@@ -311,7 +313,7 @@ export class ReportService {
 
         if (!item.itemMaterialType || expectedItemTypes.length > 0 && !expectedItemTypes.includes(item.itemMaterialType)) {
             if (item.itemMaterialType) {
-                item.hasTypeProblem = `**WRONG TYPE: ${item.hasOwnProperty("itemMaterialTypeName") && item["itemMaterialTypeName"] ? item.itemMaterialTypeName : item.itemMaterialType}; expected any of [${expectedItemTypes.join(", ")}]**`
+                item.hasTypeProblem = `**WRONG TYPE: ${item.itemMaterialType}${item.hasOwnProperty("itemMaterialTypeName") && item["itemMaterialTypeName"] ? " (" + item.itemMaterialTypeName + ")" : ""}; expected any of [${expectedItemTypes.join(", ")}]**`
             } else {
                 item.hasTypeProblem = "**BLANK ITEM MATERIAL TYPE**"
             }
