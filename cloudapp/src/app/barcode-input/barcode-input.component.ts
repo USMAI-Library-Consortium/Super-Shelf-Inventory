@@ -19,22 +19,22 @@ import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-inf
     styleUrls: ["./barcode-input.component.scss"],
 })
 export class BarcodeInputComponent implements OnInit, OnDestroy {
-    public barcodeForm: FormGroup;
+    public barcodeForm!: FormGroup;
 
     public enableUseCachedResults$: BehaviorSubject<boolean> = new BehaviorSubject(
         false
     );
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public dataLoadRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
-    public previousRun: PreviousRun = null;
+    public previousRun: PreviousRun | null = null;
     public mode: string = "job"
 
-    private enableUseCachedResultsSubscription: Subscription;
-    private jobModeSubscription: Subscription;
-    private loadingSubscription: Subscription;
-    private loadDataSubscription: Subscription;
-    private barcodeSubscription: Subscription;
-    private findSimilarRunsSubscription: Subscription;
+    private enableUseCachedResultsSubscription!: Subscription | undefined;
+    private jobModeSubscription!: Subscription | undefined;
+    private loadingSubscription!: Subscription | undefined;
+    private loadDataSubscription!: Subscription | undefined;
+    private barcodeSubscription!: Subscription | undefined;
+    private findSimilarRunsSubscription!: Subscription | undefined;
 
     constructor(
         private fb: FormBuilder,
@@ -72,8 +72,8 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                 // We want to choose 'true' to the default if this is shown, because it will be shown in the even that
                 // there are cached results. Else, it will silently be set to 'false'.
                 shouldEnable
-                    ? this.barcodeForm.get("useCachedResults").enable()
-                    : this.barcodeForm.get("useCachedResults").disable();
+                    ? this.barcodeForm.get("useCachedResults")!.enable()
+                    : this.barcodeForm.get("useCachedResults")!.disable();
             });
 
         this.jobModeSubscription = this.barcodeForm.get("mode")?.valueChanges.subscribe(newMode => {
@@ -87,16 +87,16 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
         this.loadingSubscription = this.loading$.subscribe((isLoading) => {
             isLoading
-                ? this.barcodeForm.get("barcodeXLSXFile").disable()
-                : this.barcodeForm.get("barcodeXLSXFile").enable();
+                ? this.barcodeForm.get("barcodeXLSXFile")!.disable()
+                : this.barcodeForm.get("barcodeXLSXFile")!.enable();
         });
 
     }
 
     ngOnDestroy(): void {
-        this.enableUseCachedResultsSubscription.unsubscribe();
-        this.loadingSubscription.unsubscribe();
-        this.jobModeSubscription.unsubscribe();
+        this.enableUseCachedResultsSubscription?.unsubscribe();
+        this.loadingSubscription?.unsubscribe();
+        this.jobModeSubscription?.unsubscribe();
         if (this.loadDataSubscription) this.loadDataSubscription.unsubscribe();
         if (this.barcodeSubscription) this.barcodeSubscription.unsubscribe();
         if (this.findSimilarRunsSubscription) this.findSimilarRunsSubscription.unsubscribe();
@@ -114,11 +114,11 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
 
             this.barcodeSubscription = this.bps.parseExcelFile(excelFile).subscribe(barcodes => {
                 if (!barcodes) {
-                    this.barcodeForm.get("barcodeXLSXFile").setValue(null);
+                    this.barcodeForm.get("barcodeXLSXFile")!.setValue(null);
                     this.loading$.next(false);
                     return
                 }
-                this.barcodeForm.get("scanDate").setValue(fileLastModifiedDate)
+                this.barcodeForm.get("scanDate")!.setValue(fileLastModifiedDate)
                 this.findSimilarRunsSubscription = this.stateService.findSimilarRuns(fileName, barcodes.length, barcodes[0]).subscribe(result => {
                     if (result) {
                         this.enableUseCachedResults$.next(true);
@@ -132,7 +132,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                     numberOfRecords: barcodes.length
                 }
             }, _ => {
-                this.barcodeForm.get("barcodeXLSXFile").setValue(null);
+                this.barcodeForm.get("barcodeXLSXFile")!.setValue(null);
                 this.loading$.next(false);
             })
         } else {
@@ -153,45 +153,47 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         this.previousRun = null
         this.enableUseCachedResults$.next(false);
         this.resetServices()
-        this.barcodeForm.get("mode").setValue(mode)
+        this.barcodeForm.get("mode")!.setValue(mode)
         this.dataLoadRunning$.next(false)
-        this.barcodeForm.get("barcodeXLSXFile").setValue(null)
-        this.barcodeForm.get("scanDate").setValue(null)
-        this.barcodeForm.get("useCachedResults").setValue(false)
-        this.loadDataSubscription.unsubscribe()
+        this.barcodeForm.get("barcodeXLSXFile")!.setValue(null)
+        this.barcodeForm.get("scanDate")!.setValue(null)
+        this.barcodeForm.get("useCachedResults")!.setValue(false)
+        this.loadDataSubscription?.unsubscribe()
     }
 
     public onSubmit() {
-        const useCachedResults: boolean = this.barcodeForm.get("useCachedResults").value
-        this.bps.scanDate = this.barcodeForm.get("scanDate").value
+        const useCachedResults: boolean = this.barcodeForm.get("useCachedResults")!.value
+        this.bps.scanDate = this.barcodeForm.get("scanDate")!.value
+        const mode: string = this.barcodeForm.get("mode")!.value
 
-        const mode: string = this.barcodeForm.get("mode").value
+        if (!this.bps.getBarcodes()) return
 
         if (mode === "api") {
             this.dataLoadRunning$.next(true)
-            this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()).subscribe(items => {
+            this.loadDataSubscription = this.bies.pullItemData(this.bps.getBarcodes()!).subscribe(items => {
                 this.piis.physicalItems = items
                 this.router.navigate(["configure-report"])
             })
         } else {
             if (useCachedResults) {
+                // PreviousRun is always true if
                 this.ejs.usePreviousRun({
-                    jobDate: this.previousRun.jobDate,
-                    dataExtractUrl: this.previousRun.dataExtractUrl,
-                    jobId: this.ejs.parseJobIdFromUrl(this.previousRun.dataExtractUrl)
+                    jobDate: this.previousRun!.jobDate,
+                    dataExtractUrl: this.previousRun!.dataExtractUrl,
+                    jobId: this.ejs.parseJobIdFromUrl(this.previousRun!.dataExtractUrl)
                 })
                 this.router.navigate(["job-results-input"])
             } else {
                 this.dataLoadRunning$.next(true)
-                this.loadDataSubscription = this.setService.createSet(this.bps.getBarcodes()).pipe(switchMap(almaSet => {
-                    if (!almaSet) throwError(new Error("Cannot create set. Please try again!"))
-                    else return this.ejs.runExportJob(almaSet)
+                this.loadDataSubscription = this.setService.createSet(this.bps.getBarcodes()!).pipe(switchMap((almaSet) => {
+                    if (!almaSet) throwError(() => new Error("Cannot create set. Please try again!"))
+                    return this.ejs.runExportJob(almaSet!)
                 }), catchError(err => {
                     // If there is an error with using the Jobs API, fall back to the API mode (fetching individual items).
                     console.log(err)
                     this.alert.warn("Error running Job - switching to API mode...")
-                    this.barcodeForm.get("mode").setValue("api")
-                    return this.bies.pullItemData(this.bps.getBarcodes())
+                    this.barcodeForm.get("mode")?.setValue("api")
+                    return this.bies.pullItemData(this.bps.getBarcodes()!)
                 }), switchMap(result => {
                     // Save the job run, if the job was run.
                     if (result.hasOwnProperty("jobDate")) {
@@ -202,22 +204,25 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
                         // It is a physical item array here, pulled from the backup item export.
                         return of(result)
                     }
-                })).subscribe(result => {
-                    if (result.hasOwnProperty("jobDate")) {
-                        console.log("Navigating")
-                        this.router.navigate(["job-results-input"])
-                    } else {
-                        // Skip the results input, because we already have the data from the backup item
-                        // exporter which gets individual item info.
-                        console.log("Setting Results...")
-                        // @ts-ignore
-                        this.piis.physicalItems = result
-                        this.router.navigate(["configure-report"])
+                })).subscribe({
+                    next: result => {
+                        if (result.hasOwnProperty("jobDate")) {
+                            console.log("Navigating")
+                            this.router.navigate(["job-results-input"])
+                        } else {
+                            // Skip the results input, because we already have the data from the backup item
+                            // exporter which gets individual item info.
+                            console.log("Setting Results...")
+                            // @ts-ignore
+                            this.piis.physicalItems = result
+                            this.router.navigate(["configure-report"])
+                        }
+                    },
+                    error: e => {
+                        // Reset the component
+                        console.log(e)
+                        this.reset("api")
                     }
-                }, error => {
-                    // Reset the component
-                    console.log(error)
-                    this.reset("api")
                 })
             }
         }

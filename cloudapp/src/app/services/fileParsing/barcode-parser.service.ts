@@ -14,27 +14,27 @@ export interface FileInfo {
     providedIn: 'root'
 })
 export class BarcodeParserService {
-    private barcodes: string[] = null
-    public fileInfo: FileInfo = null;
-    public scanDate: string = null;
+    private barcodes: string[] | undefined;
+    public fileInfo: FileInfo | undefined;
+    public scanDate: string | undefined;
 
     constructor(private alert: AlertService) {
     }
 
-    public getBarcodes(): string[] {
+    public getBarcodes(): string[] | undefined {
         return this.barcodes
     }
 
     public reset() {
-        this.barcodes = null
-        this.scanDate = null
-        this.fileInfo = null
+        this.barcodes = undefined
+        this.scanDate = undefined
+        this.fileInfo = undefined
     }
 
     public parseExcelFile(excelFile: Blob): Observable<string[]> {
-        this.barcodes = null
-        this.scanDate = null
-        this.fileInfo = null
+        this.barcodes = undefined
+        this.scanDate = undefined
+        this.fileInfo = undefined
 
         return from(
             excelFile.arrayBuffer().then(
@@ -50,7 +50,7 @@ export class BarcodeParserService {
                     );
                     rows.forEach((row) => {
                         // MODIFIED USING CLAUDE 3.7 SONNET
-                        let barcode: string = null;
+                        let barcode: string;
 
                         // Find the first matching key using case-insensitive comparison and handle plurals
                         const barcodeKey = Object.keys(row).find(key =>

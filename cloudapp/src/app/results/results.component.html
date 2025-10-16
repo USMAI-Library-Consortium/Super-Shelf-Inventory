@@ -37,7 +37,7 @@
         </div>
         <div *ngIf="postprocessService.getMarkAsInventoriedJob() as postprocessResults">
             <p *ngIf="postprocessResults.jobDate; else jobfailed">Marked As Inventoried: {{ 'started successfully - in ' + postprocessResults.markAsInventoriedField }}</p>
-            <ng-template #jobfailed><p>Known bug in Jobs API encountered: Please run 'Change Physical Items Information' job on set {{postprocessResults.jobId}} manually.</p></ng-template>
+            <ng-template #jobfailed><p>Process Failed{{postprocessResults.jobId ? " - No Job Permissions - run 'Change Physical Items Information' job on job with ID" + postprocessResults.jobId : " - Check console error logs."}}</p></ng-template>
         </div>
 
     </div>

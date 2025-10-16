@@ -27,7 +27,7 @@ export class CallNumberService {
         return compareVal
     }
 
-    protected normalizeDescription(description: string) {
+    protected normalizeDescription(description: string | null) {
         if (!description) return ""
         const {lcCallNumber, integerMarkers} = this.prepareCallNumber(description)
         let normalizedDescription = lcCallNumber
@@ -35,14 +35,6 @@ export class CallNumberService {
         integerMarkers.push("n")
         integerMarkers.forEach(marker => {
             marker = marker.toUpperCase()
-            // const exp2 = new RegExp(`(?<prefix>.*)?(?<integerMarker1>${marker})(\\.)?\\s*(?<integer1>\\d+).*(?<secondVol>(?<integerMarker2>${marker})(\\.)?\\s*(?<integer2>\\d+))?.*(?<date1>\\d{4}).*(?<date2>\\d{4})?.*`, "i")
-            // const markerMatch = normalizedDescription.match(exp2); // Apply regex on 'theTrimmings'
-            //
-            // if (markerMatch?.groups) { // Safely access groups
-            //     const {prefix, integerMarker1, integer1, integerMarker2, integer2, secondVol, date1, date2} = markerMatch.groups;
-            //     const paddedInteger1 = integer1.padStart(5, '0');
-            //     description = `${prefix ? prefix + " ": ""}${integerMarker1} ${paddedInteger1} ${secondVol ? integerMarker2 + " " + integer2.padStart(5, "0") + " " : ""}${date1 ? date1 : ""} ${date2 ? date2 : ""}`;
-            // }
 
             normalizedDescription = normalizedDescription.replace(new RegExp(`(?<integerMarker>${marker})\\.?\\s*(?<integer>\\d+)`, "g"), (match, integerMarker, integer) => {
                 return `${marker}${integer.padStart(5, "0")}`
@@ -56,14 +48,12 @@ export class CallNumberService {
         return normalizedDescription;
     }
 
-    public normalizeLC(originalLCNumber: string) {
+    public normalizeLC(originalLCNumber: string | null) {
         /*
           User defined setting: set problems to top to sort unparsable
           call numbers to the top of the list; false to sort them to the
           bottom.
         */
-        const problemsToTop = false;
-        const unparsable = problemsToTop ? " " : "~";
         if (!originalLCNumber) return unparsable
 
         let {lcCallNumber, integerMarkers} = this.prepareCallNumber(originalLCNumber);
@@ -87,7 +77,7 @@ export class CallNumberService {
             cutter2Number,
             cutter2Suffix,
             theTrimmings
-        } = match.groups;
+        } = match.groups ?? {};
         // Set all values to empty string if they are undefined
         initialLetters = initialLetters || "";
         classNumber = classNumber || "";
@@ -180,7 +170,9 @@ export class CallNumberService {
         return compareVal
     }
 
-    public normalizeDewey(callNum: string): string {
+    public normalizeDewey(callNum: string | null): string {
+        if (!callNum) return unparsable
+
         // Make all characters lowercase... sort works better this way for dewey...
         let init = callNum.toLowerCase();
         // Get rid of leading and trailing whitespace
@@ -216,7 +208,7 @@ export class CallNumberService {
             cutter3Number,
             cutter3Suffix,
             theTrimmings
-        } = match.groups;
+        } = match.groups ?? {};
 
         if (!cutter1Suffix) cutter1Suffix = ""
         if (!cutter2Suffix) cutter2Suffix = ""

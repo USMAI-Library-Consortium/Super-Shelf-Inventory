@@ -9,8 +9,8 @@ import {AlmaJob} from "../services/apis/export-job.service";
 })
 export class RunInfoComponent {
 
-    @Input() runInfo: AlmaJob | PreviousRun
-    @Input() prefix: string = null
+    @Input() runInfo!: AlmaJob | PreviousRun
+    @Input() prefix: string | null = null
     @Input() minimized: boolean = false
 
     constructor() {

@@ -12,7 +12,7 @@ import {ReportService} from "../services/dataProcessing/report.service";
 })
 export class ResultsComponent implements OnInit, OnDestroy {
 
-    reportDataSubscription: Subscription;
+    reportDataSubscription: Subscription | undefined;
 
     constructor(public reportService: ReportService,
                 public postprocessService: PostprocessService,
@@ -22,7 +22,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     ngOnInit(): void {}
 
     ngOnDestroy() {
-        if (this.reportDataSubscription) this.reportDataSubscription.unsubscribe();
+        this.reportDataSubscription?.unsubscribe();
     }
 
     onSubmit() {
@@ -34,6 +34,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
 
     downloadReport() {
-        this.reportService.generateAndDownloadExcel(this.reportService.getReport())
+        this.reportService.generateAndDownloadExcel(this.reportService.getReport()!)
     }
 }

@@ -4,7 +4,6 @@ import {catchError, map, tap} from "rxjs/operators";
 import {AlertService, CloudAppRestService, HttpMethod} from "@exlibris/exl-cloudapp-angular-lib";
 
 import {AlmaSet} from "./set.service";
-import {AlmaJob} from "./export-job.service";
 import {ProcessedPhysicalItem} from "../dataProcessing/report.service";
 
 
@@ -19,8 +18,11 @@ interface ScanInJobProgress {
     total: number
 }
 
-export interface MarkAsInventoriedJob extends AlmaJob {
-    markAsInventoriedField: string
+export interface MarkAsInventoriedJob {
+    jobId: string | null,
+    dataExtractUrl: string | null,
+    jobDate: string | null
+    markAsInventoriedField: string | null
 }
 
 @Injectable({
@@ -31,18 +33,18 @@ export class PostprocessService {
     public scanInJobProgress$: Subject<ScanInJobProgress> = new Subject();
     public markAsInventoriedStarted$: Subject<MarkAsInventoriedJob> = new Subject();
 
-    private scanInResults: ScanInResults = null
-    private markAsInventoriedJob: MarkAsInventoriedJob = null;
+    private scanInResults: ScanInResults | null = null
+    private markAsInventoriedJob: MarkAsInventoriedJob | null = null;
 
     constructor(private restService: CloudAppRestService,
                 private alert: AlertService) {
     }
 
-    public getScanInResults(): ScanInResults {
+    public getScanInResults(): ScanInResults | null {
         return this.scanInResults
     }
 
-    public getMarkAsInventoriedJob(): MarkAsInventoriedJob {
+    public getMarkAsInventoriedJob(): MarkAsInventoriedJob | null {
         return this.markAsInventoriedJob
     }
 

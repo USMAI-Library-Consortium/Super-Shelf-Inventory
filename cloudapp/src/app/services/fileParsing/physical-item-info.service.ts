@@ -13,18 +13,18 @@ export interface PhysicalItem {
     callNumber: string | null,
     description: string | null,
     library: string | null,
-    libraryName?: string,
+    libraryName?: string | null,
     location: string | null,
-    locationName?: string,
+    locationName?: string | null,
     itemMaterialType: string | null,
     itemMaterialTypeName?: string,
     policyType: string | null,
-    policyTypeName?: string,
+    policyTypeName?: string | null,
     status: string | null,
     processType: string | null,
     lastModifiedDate: number | null,
     lastLoanDate: number | null | -1,
-    hasTempLocation: boolean,
+    hasTempLocation: boolean | null,
     inTempLocation: boolean | null,
     requested: boolean | null
 }
@@ -33,12 +33,12 @@ export interface PhysicalItem {
     providedIn: 'root'
 })
 export class PhysicalItemInfoService {
-    public physicalItems: PhysicalItem[] = null
+    public physicalItems: PhysicalItem[] | undefined
 
     constructor() {
     }
 
     public reset() {
-        this.physicalItems = null
+        this.physicalItems = undefined
     }
 }

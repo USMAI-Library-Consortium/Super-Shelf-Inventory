@@ -24,8 +24,8 @@ interface DataExportJobProgress {
 })
 export class ExportJobService {
     public dataExportJobProgress$: Subject<DataExportJobProgress> = new Subject();
-    private job: AlmaJob = null
-    private parsedPhysicalItems$: BehaviorSubject<PhysicalItem[] | null> = new BehaviorSubject(null)
+    private job: AlmaJob | null = null
+    private parsedPhysicalItems$: BehaviorSubject<PhysicalItem[] | null> = new BehaviorSubject<PhysicalItem[] | null>(null)
 
     constructor(private restService: CloudAppRestService) {
     }
@@ -85,7 +85,7 @@ export class ExportJobService {
       `
     }
 
-    private waitForJob(result: object): Observable<AlmaJob> {
+    private waitForJob(result: any): Observable<AlmaJob> {
         const job: AlmaJob = {
             jobId: this.parseJobIdFromUrl(result["additional_info"]["link"]),
             // url: (result["additional_info"]["link"] as string).replace("/almaws/v1", "")
@@ -150,13 +150,13 @@ export class ExportJobService {
                         status: string,
                         processType: string,
                         lastModifiedDate: number,
-                        lastLoanDate: number,
+                        lastLoanDate: number | null,
                         hasTempLocation: boolean,
                         requested: boolean
                     }
                 } = {}
 
-                results.data.forEach(row => {
+                results.data.forEach((row: { [x: string]: string; }) => {
                     dataLookup[row["Barcode"]] = {
                         title: row["Title"],
                         callNumber: row["Call Number"],
@@ -172,7 +172,7 @@ export class ExportJobService {
                         processType: row["Process type"],
                         lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime() : new Date(row["Creation date"]).getTime(),
                         lastLoanDate: row["Last loan"] ? new Date(row["Last loan"]).getTime() : null,
-                        hasTempLocation: row["Temp library"] && row["Temp location"],
+                        hasTempLocation: !!(row["Temp library"] && row["Temp location"]),
                         requested: row["Process type"] === "REQUESTED"
                     }
                 })

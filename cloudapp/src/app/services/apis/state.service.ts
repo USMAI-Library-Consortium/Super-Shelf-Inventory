@@ -39,7 +39,7 @@ export class StateService {
             // Return the last run that has the same number of members and the same first barcode.
             console.log(`There are ${previousRunsThatAreSimilar.length} similar previous runs.`)
             return previousRunsThatAreSimilar.length > 0
-                ? previousRunsThatAreSimilar.pop()
+                ? previousRunsThatAreSimilar.pop()!
                 : null;
         }))
     }

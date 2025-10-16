@@ -1,7 +1,7 @@
-import {Subscription, combineLatest, BehaviorSubject, Observable} from "rxjs";
+import {Subscription, combineLatest, BehaviorSubject, Observable, of} from "rxjs";
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {map, switchMap, tap} from "rxjs/operators";
+import {catchError, map, switchMap, tap} from "rxjs/operators";
 import {Router} from "@angular/router";
 import {CloudAppConfigService, CloudAppEventsService} from "@exlibris/exl-cloudapp-angular-lib";
 
@@ -23,11 +23,6 @@ interface ScanLocation {
     count: number;
 }
 
-interface CircDesk {
-    name: string;
-    code: string;
-}
-
 interface ItemType {
     code: string;
     name: string;
@@ -46,7 +41,7 @@ interface PolicyType {
     styleUrls: ["./report-form.component.scss"],
 })
 export class ReportForm implements OnInit, OnDestroy {
-    public inventoryForm: FormGroup;
+    public inventoryForm!: FormGroup;
 
     // Final, merged dropdown lists.
     public institutionLibrariesForDropdown: Library[] = [];
@@ -84,12 +79,12 @@ export class ReportForm implements OnInit, OnDestroy {
     private markAsInventoriedField: string | null = null;
 
     // Subscriptions
-    private reportLoadingSubscription: Subscription
-    private enableCircDeskSubscription: Subscription;
-    private enableReportOnlyProblemsSubscription: Subscription;
-    private enablePostprocessSubscription: Subscription;
-    private reportSetupSubscription: Subscription;
-    private blankItemPolicyValidSubscription: Subscription;
+    private reportLoadingSubscription: Subscription | undefined;
+    private enableCircDeskSubscription: Subscription | undefined;
+    private enableReportOnlyProblemsSubscription: Subscription | undefined;
+    private enablePostprocessSubscription: Subscription | undefined;
+    private reportSetupSubscription: Subscription | undefined;
+    private blankItemPolicyValidSubscription: Subscription | undefined;
 
     constructor(
         private fb: FormBuilder,
@@ -123,14 +118,14 @@ export class ReportForm implements OnInit, OnDestroy {
         });
 
         // Set defaults for conditional options to disabled.
-        this.inventoryForm.get("markAsInventoried").disable()
-        this.inventoryForm.get("scanInItems").disable()
-        this.inventoryForm.get("circDesk").disable()
-        this.inventoryForm.get("reportOnlyProblems").disable()
+        this.inventoryForm.get("markAsInventoried")!.disable()
+        this.inventoryForm.get("scanInItems")!.disable()
+        this.inventoryForm.get("circDesk")!.disable()
+        this.inventoryForm.get("reportOnlyProblems")!.disable()
 
         // Set conditional options based on user inputs
-        this.enableCircDeskSubscription = this.inventoryForm.get("scanInItems").valueChanges.subscribe(value => this.enableOrDisableCircDeskInput(value))
-        this.enableReportOnlyProblemsSubscription = this.inventoryForm.get('limitOrderProblems').valueChanges.subscribe(value => this.enableOrDisableReportOnlyProblems(value))
+        this.enableCircDeskSubscription = this.inventoryForm.get("scanInItems")!.valueChanges.subscribe(value => this.enableOrDisableCircDeskInput(value))
+        this.enableReportOnlyProblemsSubscription = this.inventoryForm.get('limitOrderProblems')!.valueChanges.subscribe(value => this.enableOrDisableReportOnlyProblems(value))
         this.enablePostprocessSubscription = this.configurationService.get().subscribe(value => this.enableOrDisablePostprocess(value))
 
         // Parse Physical Items Information, for use in Autofill
@@ -142,52 +137,61 @@ export class ReportForm implements OnInit, OnDestroy {
             }
         }), tap(_ => {
             // Parse codes, names, and quantities for the dropdowns
-            this.parsePhysicalItemAutofillData(this.physicalItemInfoService.physicalItems)
+            this.parsePhysicalItemAutofillData(this.physicalItemInfoService.physicalItems!)
         }), tap(userSettings => {
             // Set dropdown displays
             this.setDisplayLists(userSettings.circDesk)
         })).subscribe()
 
         // Make Item Policies dropdown required or not required, based on whether blank item policies are permitted.
-        this.blankItemPolicyValidSubscription = this.inventoryForm.get("allowBlankItemPolicy").valueChanges.subscribe(blankItemPolicyValid => {
+        this.blankItemPolicyValidSubscription = this.inventoryForm.get("allowBlankItemPolicy")!.valueChanges.subscribe(blankItemPolicyValid => {
             if (blankItemPolicyValid) {
-                this.inventoryForm.get("expectedPolicyTypes").clearValidators()
+                this.inventoryForm.get("expectedPolicyTypes")!.clearValidators()
             } else {
-                this.inventoryForm.get("expectedPolicyTypes").setValidators([Validators.required])
+                this.inventoryForm.get("expectedPolicyTypes")!.setValidators([Validators.required])
             }
-            this.inventoryForm.get("expectedPolicyTypes").updateValueAndValidity()
+            this.inventoryForm.get("expectedPolicyTypes")!.updateValueAndValidity()
         })
     }
 
     public onSubmit() {
         this.reportLoading$.next(true)
-        const callNumberType = this.inventoryForm.get("callNumberType").value
-        const library = this.inventoryForm.get("library").value
-        const scanLocations = this.inventoryForm.get("scanLocations").value
-        const circDesk = this.inventoryForm.get("circDesk").value
-        const expectedItemTypes = this.inventoryForm.get("expectedItemTypes").value
-        const expectedPolicyTypes = this.inventoryForm.get("expectedPolicyTypes").value
-        const allowBlankItemPolicy = this.inventoryForm.get("allowBlankItemPolicy").value
-        const limitOrderProblems = this.inventoryForm.get("limitOrderProblems").value
-        const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems").value
-        const sortBy = this.inventoryForm.get("sortBy").value
-        const sortMultiVolumeByDescription = this.inventoryForm.get("sortMultiVolumeByDescription").value
-        const markAsInventoried = this.inventoryForm.get("markAsInventoried").value && this.inventoryForm.get("markAsInventoried").value !== "undefined" ? this.markAsInventoriedField : null
-        const scanInItems = this.inventoryForm.get("scanInItems").value
+        const callNumberType = this.inventoryForm.get("callNumberType")!.value
+        const library = this.inventoryForm.get("library")!.value
+        const scanLocations = this.inventoryForm.get("scanLocations")!.value
+        const circDesk = this.inventoryForm.get("circDesk")!.value
+        const expectedItemTypes = this.inventoryForm.get("expectedItemTypes")!.value
+        const expectedPolicyTypes = this.inventoryForm.get("expectedPolicyTypes")!.value
+        const allowBlankItemPolicy = this.inventoryForm.get("allowBlankItemPolicy")!.value
+        const limitOrderProblems = this.inventoryForm.get("limitOrderProblems")!.value
+        const reportOnlyProblems = this.inventoryForm.get("reportOnlyProblems")!.value
+        const sortBy = this.inventoryForm.get("sortBy")!.value
+        const sortMultiVolumeByDescription = this.inventoryForm.get("sortMultiVolumeByDescription")!.value
+        const markAsInventoried = this.inventoryForm.get("markAsInventoried")!.value && this.inventoryForm.get("markAsInventoried")!.value !== "undefined" ? this.markAsInventoriedField : null
+        const scanInItems = this.inventoryForm.get("scanInItems")!.value
 
-        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, allowBlankItemPolicy, limitOrderProblems, reportOnlyProblems, sortBy, sortMultiVolumeByDescription, circDesk, this.bps.scanDate, this.physicalItemInfoService.physicalItems)
+        const report = this.reportService.generateReport(callNumberType, library, scanLocations, expectedItemTypes, expectedPolicyTypes, allowBlankItemPolicy, limitOrderProblems, reportOnlyProblems, sortBy, sortMultiVolumeByDescription, circDesk, this.bps.scanDate!, this.physicalItemInfoService.physicalItems!)
 
-        let markAsInventoriedJob: Observable<MarkAsInventoriedJob> = null
+        let markAsInventoriedJob: Observable<MarkAsInventoriedJob> | null = null;
         if (markAsInventoried) {
             const barcodes: string[] = report.unsortedItems.map(item => item.barcode)
             markAsInventoriedJob = this.setService.getLatestSetInfoOrCreateSet(barcodes).pipe(switchMap(setInfo => {
-                return this.postProcessService.markAsInventoried(markAsInventoried, this.bps.scanDate, setInfo)
-            }))
+                return this.postProcessService.markAsInventoried(markAsInventoried, this.bps.scanDate!, setInfo)
+            }),
+                catchError(err => {
+                    return of({
+                        jobId: null,
+                        jobDate: null,
+                        dataExtractUrl: null,
+                        markAsInventoriedField: null
+                    })
+                }))
         }
 
-        let scanInItemsJob: Observable<ScanInResults> = null
+        let scanInItemsJob: Observable<ScanInResults> | null = null;
         if (scanInItems) scanInItemsJob = this.postProcessService.scanInItems(report.unsortedItems, library, circDesk)
 
+        // @ts-ignore
         if (markAsInventoriedJob || scanInItemsJob) {
             const jobs: Observable<any>[] = []
             if (markAsInventoriedJob) jobs.push(markAsInventoriedJob)
@@ -216,7 +220,7 @@ export class ReportForm implements OnInit, OnDestroy {
             }
         }
 
-        this.inventoryForm.get('library').setValue(libraryWithHighestCount)
+        this.inventoryForm.get('library')!.setValue(libraryWithHighestCount)
 
         for (let mapping of [{
             source: this.scanLocationsFromPhysicalItems,
@@ -240,77 +244,81 @@ export class ReportForm implements OnInit, OnDestroy {
                     count: itemCount
                 })
                 if (itemCount > 5) {
-                    const currentValue = this.inventoryForm.get(mapping.control).value || [];
+                    const currentValue = this.inventoryForm.get(mapping.control)!.value || [];
                     const newValue = [...currentValue, key];
-                    this.inventoryForm.get(mapping.control).setValue(newValue);
+                    this.inventoryForm.get(mapping.control)!.setValue(newValue);
                 }
             }
         }
 
-        if (circDesk) this.inventoryForm.get('circDesk').setValue(circDesk)
+        if (circDesk) this.inventoryForm.get('circDesk')!.setValue(circDesk)
     }
 
     private parsePhysicalItemAutofillData(physicalItems: PhysicalItem[]) {
         // Parse out the information needed to create dropdowns and such.
         physicalItems.forEach(item => {
             // Parse Library Info
-            const itemLibraryAlreadyAddedToDict = item.library in this.librariesFromPhysicalItems
+            const libraryOrEmptyString = item.library ? item.library : ""
+            const itemLibraryAlreadyAddedToDict = libraryOrEmptyString in this.librariesFromPhysicalItems
             if (!itemLibraryAlreadyAddedToDict) {
-                this.librariesFromPhysicalItems[item.library] = {
+                this.librariesFromPhysicalItems[libraryOrEmptyString] = {
                     count: 1,
-                    name: item.hasOwnProperty("libraryName") ? item.libraryName : null
+                    name: item.hasOwnProperty("libraryName") ? (item.libraryName ? item.libraryName : "") : ""
                 }
             } else {
-                this.librariesFromPhysicalItems[item.library].count += 1
+                this.librariesFromPhysicalItems[libraryOrEmptyString].count += 1
             }
 
             // Parse Location Info
-            const itemLocationAlreadyAddedToDict = item.location in this.scanLocationsFromPhysicalItems
+            const locationOrEmptyString = item.location ? item.location : ""
+            const itemLocationAlreadyAddedToDict = locationOrEmptyString in this.scanLocationsFromPhysicalItems
             if (!itemLocationAlreadyAddedToDict) {
-                this.scanLocationsFromPhysicalItems[item.location] = {
+                this.scanLocationsFromPhysicalItems[locationOrEmptyString] = {
                     count: 1,
-                    name: item.hasOwnProperty("locationName") ? item.locationName : null,
+                    name: item.hasOwnProperty("locationName") ? (item.locationName ? item.locationName : "") : "",
                 }
             } else {
-                this.scanLocationsFromPhysicalItems[item.location].count += 1
+                this.scanLocationsFromPhysicalItems[locationOrEmptyString].count += 1
             }
 
             // Parse Item Type Info
-            const itemTypeAlreadyAddedToDict = item.itemMaterialType in this.itemTypesFromPhysicalItems
+            const itemMaterialTypeOrEmptyString = item.itemMaterialType ? item.itemMaterialType : ""
+            const itemTypeAlreadyAddedToDict = itemMaterialTypeOrEmptyString in this.itemTypesFromPhysicalItems
             if (!itemTypeAlreadyAddedToDict) {
-                this.itemTypesFromPhysicalItems[item.itemMaterialType] = {
+                this.itemTypesFromPhysicalItems[itemMaterialTypeOrEmptyString] = {
                     count: 1,
-                    name: item.hasOwnProperty("itemMaterialTypeName") ? item.itemMaterialTypeName : null
+                    name: item.hasOwnProperty("itemMaterialTypeName") ? (item.itemMaterialTypeName ? item.itemMaterialTypeName : "") : ""
                 }
             } else {
-                this.itemTypesFromPhysicalItems[item.itemMaterialType].count += 1
+                this.itemTypesFromPhysicalItems[itemMaterialTypeOrEmptyString].count += 1
             }
 
             // Parse Item Policy Info
-            const itemPolicyAlreadyAddedToDict = item.policyType in this.policyTypesFromPhysicalItems
+            const policyTypeOrEmptyString = item.policyType ? item.policyType : ""
+            const itemPolicyAlreadyAddedToDict = policyTypeOrEmptyString in this.policyTypesFromPhysicalItems
             if (!itemPolicyAlreadyAddedToDict) {
-                this.policyTypesFromPhysicalItems[item.policyType] = {
+                this.policyTypesFromPhysicalItems[policyTypeOrEmptyString] = {
                     count: 1,
-                    name: item.hasOwnProperty("policyTypeName") ? item.policyTypeName : null
+                    name: item.hasOwnProperty("policyTypeName") ? (item.policyTypeName ? item.policyTypeName : "") : ""
                 }
             } else {
-                this.policyTypesFromPhysicalItems[item.policyType].count += 1
+                this.policyTypesFromPhysicalItems[policyTypeOrEmptyString].count += 1
             }
         })
     }
 
-    private enableOrDisablePostprocess(configurationSettings: object) {
+    private enableOrDisablePostprocess(configurationSettings: any) {
         if (!configurationSettings) {
             console.log("Postprocess Not Configured - using defaults (disabled)")
         } else {
             const markAsInventoriedAllowed = configurationSettings["inventoryField"] && configurationSettings["inventoryField"] !== 'None' && configurationSettings["inventoryField"] !== "undefined"
             if (markAsInventoriedAllowed) {
-                this.inventoryForm.get("markAsInventoried").enable()
+                this.inventoryForm.get("markAsInventoried")!.enable()
                 this.markAsInventoriedField = configurationSettings["inventoryField"];
                 console.log(`Marking Inventory Allowed - stored in ${configurationSettings["inventoryField"]}`)
             }
             if (configurationSettings["allowScanIn"]) {
-                this.inventoryForm.get("scanInItems").enable()
+                this.inventoryForm.get("scanInItems")!.enable()
                 console.log(`Scanning In Items Allowed.`)
             }
         }
@@ -318,15 +326,15 @@ export class ReportForm implements OnInit, OnDestroy {
 
     private enableOrDisableReportOnlyProblems(orderProblemLimit: string) {
         if (orderProblemLimit === "onlyOther") {
-            this.inventoryForm.get("reportOnlyProblems").enable()
+            this.inventoryForm.get("reportOnlyProblems")!.enable()
         } else {
-            this.inventoryForm.get("reportOnlyProblems").setValue(false)
-            this.inventoryForm.get("reportOnlyProblems").disable()
+            this.inventoryForm.get("reportOnlyProblems")!.setValue(false)
+            this.inventoryForm.get("reportOnlyProblems")!.disable()
         }
     }
 
     private enableOrDisableCircDeskInput(scanInItems: boolean) {
-        const circDeskInput = this.inventoryForm.get("circDesk");
+        const circDeskInput = this.inventoryForm.get("circDesk")!;
         if (scanInItems) {
             circDeskInput.enable()
             circDeskInput.setValidators([Validators.required])
@@ -343,7 +351,7 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     public onBack(): void {
-        const dataSource = this.physicalItemInfoService.physicalItems[0].source
+        const dataSource = this.physicalItemInfoService.physicalItems![0].source
         if (dataSource == 'job') {
             this.router.navigate(['/', 'job-results-input'])
         } else {
@@ -352,11 +360,11 @@ export class ReportForm implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        if (this.reportLoadingSubscription) this.reportLoadingSubscription.unsubscribe()
-        this.enableCircDeskSubscription.unsubscribe()
-        this.enableReportOnlyProblemsSubscription.unsubscribe()
-        this.enablePostprocessSubscription.unsubscribe()
-        this.reportSetupSubscription.unsubscribe()
-        this.blankItemPolicyValidSubscription.unsubscribe()
+        this.reportLoadingSubscription?.unsubscribe()
+        this.enableCircDeskSubscription?.unsubscribe()
+        this.enableReportOnlyProblemsSubscription?.unsubscribe()
+        this.enablePostprocessSubscription?.unsubscribe()
+        this.reportSetupSubscription?.unsubscribe()
+        this.blankItemPolicyValidSubscription?.unsubscribe()
     }
 }

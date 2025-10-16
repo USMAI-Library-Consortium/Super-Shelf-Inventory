@@ -6,7 +6,7 @@ import {ProcessedPhysicalItem} from "./report.service";
 const IN_CORRECT_ORDER = -1
 const NEEDS_TO_BE_SWITCHED = 1
 
-let getPhysicalItem = (callNum: string, description: string = null): ProcessedPhysicalItem => {
+let getPhysicalItem = (callNum: string, description: string | null = null): ProcessedPhysicalItem => {
     return {
         barcode: "string",
         existsInAlma: true,
@@ -35,7 +35,7 @@ let getPhysicalItem = (callNum: string, description: string = null): ProcessedPh
         normalizedDescription: null,
         sortable: true,
         actualLocation: null,
-        actualLocationInUnsortablesRemoved: null,
+        actualLocationInUnsortablesRemovedList: undefined,
         correctLocation: null,
         hasUnparsableCallNumberProblem: null,
         hasOrderProblem: null,

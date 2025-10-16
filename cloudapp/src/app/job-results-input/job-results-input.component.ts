@@ -14,11 +14,11 @@ import {IndividualItemInfoService} from "../services/apis/individual-item-info.s
     styleUrls: ["./job-results-input.component.scss"],
 })
 export class JobResultsInputComponent implements OnInit, OnDestroy {
-    public reportForm: FormGroup;
+    public reportForm!: FormGroup;
     public ready$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
-    private loadDataSubscription: Subscription;
+    private loadDataSubscription: Subscription | undefined;
 
     constructor(
         public piis: PhysicalItemInfoService,
@@ -51,29 +51,34 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
 
     onSubmit() {
         this.loading$.next(true)
-        this.loadDataSubscription =  this.iii.pullTempLocationItemInfo(this.piis.physicalItems).subscribe(physicalItemsWithTempLocation => {
-            this.piis.physicalItems = physicalItemsWithTempLocation
-            this.loading$.next(false);
-            this.router.navigate(["configure-report"])
-        }, err => {
-            console.log(err)
+        this.loadDataSubscription = this.iii.pullTempLocationItemInfo(this.piis.physicalItems!).subscribe({
+            next: physicalItemsWithTempLocation => {
+                this.piis.physicalItems = physicalItemsWithTempLocation
+                this.loading$.next(false);
+                this.router.navigate(["configure-report"])
+            }
+            , error: err => {
+                console.log(err)
+            }
         })
     }
 
     onFileSelect(event: Event) {
         this.ready$.next(false)
         const input = event.target as HTMLInputElement;
-        this.loadDataSubscription = this.ejs.parseReport(input.files[0], this.bps.getBarcodes()).subscribe(physicalItems => {
-            this.piis.physicalItems = physicalItems
-            this.ready$.next(true);
-        }, err => {
-            console.log(err)
-            let message = `Issue parsing job file... ${err.message}. Resetting run.`
-            this.router.navigate(["/"], {
-                queryParams: {
-                    errorMessage: message
-                }
-            })
+        this.loadDataSubscription = this.ejs.parseReport(input.files![0], this.bps.getBarcodes()!).subscribe({
+            next: physicalItems => {
+                this.piis.physicalItems = physicalItems
+                this.ready$.next(true);
+            }, error: err => {
+                console.log(err)
+                let message = `Issue parsing job file... ${err.message}. Resetting run.`
+                this.router.navigate(["/"], {
+                    queryParams: {
+                        errorMessage: message
+                    }
+                })
+            }
         })
     }
 }
