@@ -1,4 +1,4 @@
-<div *ngIf="!(loading$ | async); else jobRunningDisplay">
+<div>
     <div class="eca-actions">
         <button
                 mat-flat-button
@@ -40,16 +40,3 @@
         </form>
     </div>
 </div>
-
-<ng-template #jobRunningDisplay>
-    <div class="spinner-container">
-        <mat-progress-spinner
-                style="margin-bottom: 1rem;"
-                mode="indeterminate"
-                diameter="50"
-        ></mat-progress-spinner>
-        <div *ngIf="iii.getIndividualItemInfoProgress$ | async as progress">
-            <p>Pulled Temp Location info for {{progress.completed}} / {{progress.total}} items..</p>
-        </div>
-    </div>
-</ng-template>

@@ -6,7 +6,6 @@ import {Router} from "@angular/router";
 import {ExportJobService} from "../services/apis/export-job.service";
 import {PhysicalItemInfoService} from "../services/fileParsing/physical-item-info.service";
 import {BarcodeParserService} from "../services/fileParsing/barcode-parser.service";
-import {IndividualItemInfoService} from "../services/apis/individual-item-info.service";
 
 @Component({
     selector: "app-job-results-input",
@@ -16,7 +15,6 @@ import {IndividualItemInfoService} from "../services/apis/individual-item-info.s
 export class JobResultsInputComponent implements OnInit, OnDestroy {
     public reportForm!: FormGroup;
     public ready$: BehaviorSubject<boolean> = new BehaviorSubject(false);
-    public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
     private loadDataSubscription: Subscription | undefined;
 
@@ -24,7 +22,6 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
         public piis: PhysicalItemInfoService,
         public ejs: ExportJobService,
         private bps: BarcodeParserService,
-        public iii: IndividualItemInfoService,
         private fb: FormBuilder,
         private router: Router,
     ) {
@@ -50,17 +47,7 @@ export class JobResultsInputComponent implements OnInit, OnDestroy {
     }
 
     onSubmit() {
-        this.loading$.next(true)
-        this.loadDataSubscription = this.iii.pullTempLocationItemInfo(this.piis.physicalItems!).subscribe({
-            next: physicalItemsWithTempLocation => {
-                this.piis.physicalItems = physicalItemsWithTempLocation
-                this.loading$.next(false);
-                this.router.navigate(["configure-report"])
-            }
-            , error: err => {
-                console.log(err)
-            }
-        })
+        this.router.navigate(["configure-report"])
     }
 
     onFileSelect(event: Event) {
