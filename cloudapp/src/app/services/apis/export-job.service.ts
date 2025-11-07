@@ -152,6 +152,7 @@ export class ExportJobService {
                         lastModifiedDate: number,
                         lastLoanDate: number | null,
                         hasTempLocation: boolean,
+                        inTempLocation: boolean,
                         requested: boolean
                     }
                 } = {}
@@ -164,8 +165,8 @@ export class ExportJobService {
                         mmsId: row["MMS Record ID"],
                         holdingId: row["HOL Record ID"],
                         pid: row["Item PID"],
-                        library: row["Local Location"],
-                        location: row["Permanent Physical Location"],
+                        library: row["Temp location in use"] === "1" ? row["Temp library"] : row["Local Location"],
+                        location: row["Temp location in use"] === "1" ? row["Temp location"] : row["Permanent Physical Location"],
                         itemMaterialType: row["Item Material Type"],
                         policyType: row["Policy"],
                         status: row["Status"],
@@ -173,6 +174,7 @@ export class ExportJobService {
                         lastModifiedDate: row["Modification date"] ? new Date(row["Modification date"]).getTime() : new Date(row["Creation date"]).getTime(),
                         lastLoanDate: row["Last loan"] ? new Date(row["Last loan"]).getTime() : null,
                         hasTempLocation: !!(row["Temp library"] && row["Temp location"]),
+                        inTempLocation: row["Temp location in use"] === "1",
                         requested: row["Process type"] === "REQUESTED"
                     }
                 })
@@ -201,7 +203,7 @@ export class ExportJobService {
                             lastModifiedDate: data.lastModifiedDate,
                             lastLoanDate: data.lastLoanDate,
                             hasTempLocation: data.hasTempLocation,
-                            inTempLocation: null,
+                            inTempLocation: data.inTempLocation,
                             requested: data.requested,
                         })
                     } else {
