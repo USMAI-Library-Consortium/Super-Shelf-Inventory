@@ -27,7 +27,7 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
     public loading$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public dataLoadRunning$: BehaviorSubject<boolean> = new BehaviorSubject(false);
     public previousRun: PreviousRun | null = null;
-    public mode: string = "job"
+    public mode: string = "api"
 
     private enableUseCachedResultsSubscription!: Subscription | undefined;
     private jobModeSubscription!: Subscription | undefined;
@@ -56,15 +56,13 @@ export class BarcodeInputComponent implements OnInit, OnDestroy {
         console.log(errorMessage)
         if (errorMessage) this.alert.error(errorMessage);
 
-        this.alert.info("Optimize for: Simplicity has been repaired; it may become the default in the future", {delay: 8000})
-
         this.resetServices()
 
         this.barcodeForm = this.fb.group({
             barcodeXLSXFile: [null, Validators.required],
             scanDate: [null, Validators.required],
             useCachedResults: [false, Validators.required],
-            mode: ["job", Validators.required],
+            mode: ["api", Validators.required],
         });
 
         this.enableUseCachedResultsSubscription =
