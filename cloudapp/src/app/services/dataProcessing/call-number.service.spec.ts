@@ -36,6 +36,7 @@ let getPhysicalItem = (callNum: string, description: string | null = null): Proc
         sortable: true,
         actualLocation: null,
         actualLocationInUnsortablesRemovedList: undefined,
+        correctLocationInUnsortablesRemovedList: undefined,
         correctLocation: null,
         hasUnparsableCallNumberProblem: null,
         hasOrderProblem: null,

@@ -11,6 +11,7 @@ export interface ProcessedPhysicalItem extends PhysicalItem {
     sortable: boolean,
     actualLocation: number | null,
     actualLocationInUnsortablesRemovedList: number | undefined,
+    correctLocationInUnsortablesRemovedList: number | undefined,
     correctLocation: number | null,
     hasUnparsableCallNumberProblem: string | null,
     hasOrderProblem: string | null,
@@ -94,6 +95,7 @@ export class ReportService {
                 sortable: true,
                 actualLocation: null,
                 actualLocationInUnsortablesRemovedList: undefined,
+                correctLocationInUnsortablesRemovedList: undefined,
                 correctLocation: null,
                 hasUnparsableCallNumberProblem: null,
                 hasLibraryProblem: null,
@@ -143,11 +145,46 @@ export class ReportService {
         } : (a, b) => {
             return this.callNumberService.sortDewey(a, b, sortMultiVolumeByDescription)
         })
+        // Enrich the items in the sorted array with the correct index. This is necessary for implementing the
+        // LIS algorithm. This will propagate to the unsorted lists due to how variable pointers work
+        sorted.forEach((item, i) => {
+            item.correctLocationInUnsortablesRemovedList = i + 1
+        })
+
+        const barcodesLIS = this.getBarcodeLIS(unsortedWithUnsortablesRemoved)
 
         sorted.forEach((item, index) => {
             // Flag order issues unless "Only problems other than CN Order" is requested
             if (orderProblemLimit !== "onlyOther") {
-                this.calculateOrderProblems(item, index, sorted, unsortedWithUnsortablesRemoved, sortMultiVolumeByDescription);
+                if (!barcodesLIS.includes(item.barcode)) {
+                    let itemBeforeCallNum = index == 0 ? "SCAN START" : sorted[index - 1].callNumber!
+                    let itemAfterCallNum = index == sorted.length - 1 ? "SCAN END": sorted[index + 1].callNumber!
+
+                    const itemBefore: ProcessedPhysicalItem | null = index == 0 ? null : sorted[index - 1]
+                    const itemBeforeBefore: ProcessedPhysicalItem | null = index <= 1 ? null : sorted[index - 2]
+
+                    // Check if the preceding call numbers are equivalent. If so, we need to include description information so
+                    // the librarian can distinguish which one to put it by
+                    const twoPrecedingCallNumbersEquivalent = itemBefore?.callNumber === itemBeforeBefore?.callNumber
+
+                    const itemAfter: ProcessedPhysicalItem | null = index == sorted.length - 1 ? null: sorted[index + 1]
+                    const itemAfterAfter: ProcessedPhysicalItem | null = index >= sorted.length - 2 ? null: sorted[index + 2]
+
+                    // Same deal as the previous calculation
+                    const twoFollowingCallNumbersEquivalent = itemAfter?.callNumber === itemAfterAfter?.callNumber
+
+                    const itemHasSameCallNumAsNeighbors = item.callNumber === itemBeforeCallNum || item.callNumber === itemAfterCallNum
+
+                    if (itemHasSameCallNumAsNeighbors || twoPrecedingCallNumbersEquivalent || twoFollowingCallNumbersEquivalent) {
+                        if (itemBefore?.description) {
+                            itemBeforeCallNum += ` (${itemBefore.description})`
+                        }
+                        if (itemAfter?.description) {
+                            itemAfterCallNum += ` (${itemAfter?.description})`
+                        }
+                    }
+                    item.hasOrderProblem = `**WRONG ORDER: should be between ${itemBeforeCallNum} and ${itemAfterCallNum}**`
+                }
             } // Finished calculating order issues
 
             // Flag other issues unless "Only CN Order problems" is requested.
@@ -321,51 +358,66 @@ export class ReportService {
         }
     }
 
-    protected calculateOrderProblems(item: ProcessedPhysicalItem, index: number, sorted: ProcessedPhysicalItem[], unsortedWithUnsortablesRemoved: ProcessedPhysicalItem[], sortMultiVolumeByDescription: boolean) {
-        if (item.existsInAlma) {
-            const actualLocationIndex = item.actualLocationInUnsortablesRemovedList! - 1
-            const itemIsInTheCorrectAbsolutePosition = index === actualLocationIndex
+    /**
+     * Finds the Longest Increasing Subsequence of items based on their
+     * 'correctLocationInUnsortablesRemovedList' index.
+     * @param items Array of ProcessedPhysicalItem objects
+     * @returns An array of strings (barcodes) corresponding to the LIS
+     */
+    getBarcodeLIS(items: ProcessedPhysicalItem[]): string[] {
+        if (items.length === 0) return [];
 
-            const correctPreviousItemCallNum = index > 0 ? sorted[index - 1].callNumber : "LOCATION START"
-            const correctPreviousItemDescription = index > 0 ? sorted[index - 1].description : "LOCATION START"
-            const correctNextItemCallNum = index < sorted.length - 1 ? sorted[index + 1].callNumber : "LOCATION END"
-            const correctNextItemDescription = index < sorted.length - 1 ? sorted[index + 1].description : "LOCATION END"
+        // tails stores the actual item objects to easily access properties later
+        const tails: ProcessedPhysicalItem[] = [];
 
-            const isMultiVolume = correctNextItemCallNum === item.callNumber || correctPreviousItemCallNum === item.callNumber
+        // parent[i] stores the index of the predecessor of items[i] in the LIS chain
+        const parent: number[] = new Array(items.length).fill(-1);
 
-            // Get actual previous call number based on actualLocation
-            const actualPreviousItemCallNum = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].callNumber : "LOCATION START";
-            const actualPreviousDescription = actualLocationIndex > 0 ? unsortedWithUnsortablesRemoved[actualLocationIndex - 1].description : "LOCATION START";
-            // Get actual next call number based on actualLocation
-            const actualNextItemCallNumber = actualLocationIndex < unsortedWithUnsortablesRemoved.length - 1 ? unsortedWithUnsortablesRemoved[actualLocationIndex + 1].callNumber : "LOCATION END";
-            const actualNextItemDescription = actualLocationIndex < unsortedWithUnsortablesRemoved.length - 1 ? unsortedWithUnsortablesRemoved[actualLocationIndex + 1].description : "LOCATION END";
+        // tailsIndices[i] stores the index in the original 'items' array
+        // corresponding to the element currently at tails[i]
+        const tailsIndices: number[] = [];
 
-            const previousItemIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum
-            const nextItemIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum
+        for (let i = 0; i < items.length; i++) {
+            const currentItem = items[i];
+            const currentSortValue = currentItem.correctLocationInUnsortablesRemovedList!;
 
-            const isRogueItem = !previousItemIsAlreadyCorrect && !nextItemIsAlreadyCorrect
-            if (!itemIsInTheCorrectAbsolutePosition) {
-                if (isMultiVolume) {
-                    if (sortMultiVolumeByDescription) {
-                        const previousMultiVolumeIsAlreadyCorrect = actualPreviousItemCallNum === correctPreviousItemCallNum && actualPreviousDescription === correctPreviousItemDescription
-                        const nextMultiVolumeIsAlreadyCorrect = actualNextItemCallNumber === correctNextItemCallNum && actualNextItemDescription === correctNextItemDescription
-                        const isOutOfOrderWithinMultiVolume = !previousMultiVolumeIsAlreadyCorrect || !nextMultiVolumeIsAlreadyCorrect
-                        if (isOutOfOrderWithinMultiVolume) item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' (${correctPreviousItemDescription}) and '${correctNextItemCallNum}' (${correctNextItemDescription})`
-                        item.hasProblem = true
-                    }
+            // Binary search based on correctLocationInUnsortablesRemovedList
+            let left = 0;
+            let right = tails.length;
+
+            while (left < right) {
+                const mid = Math.floor((left + right) / 2);
+                if (tails[mid].correctLocationInUnsortablesRemovedList! < currentSortValue) {
+                    left = mid + 1;
+                } else {
+                    right = mid;
                 }
             }
 
-            if (isRogueItem && !isMultiVolume) {
-                item.hasProblem = true
-                item.hasOrderProblem = `**OUT OF ORDER**; should be between '${correctPreviousItemCallNum}' and '${correctNextItemCallNum}'`
-            }
+            // Update tails and indices
+            tails[left] = currentItem;
+            tailsIndices[left] = i;
 
-            // Mark multi-volume order as not being checked. Disabled for now as it's not particularly useful.
-            // if (isMultiVolume && !sortMultiVolumeByDescription) item.hasOrderProblem = item.hasOrderProblem ? item.hasOrderProblem + " || **Multi-Volume Order Not Checked**" : "**Multi-Volume Order Not Checked**"
-        } else {
-            item.hasProblem = true
+            // Link to the previous element in the sequence for reconstruction
+            if (left > 0) {
+                parent[i] = tailsIndices[left - 1];
+            }
         }
+
+        // Reconstruct the sequence backwards using the parent pointers
+        let len = tails.length;
+        if (len === 0) return [];
+
+        let currIndex = tailsIndices[len - 1];
+        const resultBarcodes: string[] = [];
+
+        while (currIndex !== -1) {
+            resultBarcodes.push(items[currIndex].barcode);
+            currIndex = parent[currIndex];
+        }
+
+        // Reverse because we reconstructed backwards
+        return resultBarcodes.reverse();
     }
 
     generateAndDownloadExcel(reportData: ReportData) {
