@@ -187,11 +187,14 @@ export class CallNumberService {
         init = init.replace(/\n/g, "");
 
         const deweyRegex = /^(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z]{1,3})(?<cutter1Number>\d{1,4})\d*(?<cutter1Suffix>[a-z]{1,3} )?) *(?<cutter2>(?<cutter2Letter>[a-z]{1,3})(?<cutter2Number>\d{1,4})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z]{1,3})(?<cutter3Number>\d{1,4})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
+        const simplifiedDeweyRegex = /^(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z])(?<cutter1Number>[a-z]{1,3})\d*(?<cutter1Suffix>[a-z]{1,2} )?) *(?<cutter2>(?<cutter2Letter>[a-z])(?<cutter2Number>[a-z]{1,2})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z])(?<cutter3Number>[a-z]{1,2})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
         const match = init.match(deweyRegex);
-        if (!match) return unparsable // return extreme answer if not a call number
+        const simplifiedMatch = init.match(simplifiedDeweyRegex)
+        if (!match && !simplifiedMatch) return unparsable // return extreme answer if not a call number
 
         // Process the extracted variables as needed
         // Return or do something with the parsed data
+        let chosenMatch = match ? match : simplifiedMatch
         let {
             classNumber,
             decimalNumber,
@@ -208,7 +211,7 @@ export class CallNumberService {
             cutter3Number,
             cutter3Suffix,
             theTrimmings
-        } = match.groups ?? {};
+        } = chosenMatch!.groups ?? {};
 
         if (!cutter1Suffix) cutter1Suffix = ""
         if (!cutter2Suffix) cutter2Suffix = ""

@@ -273,6 +273,24 @@ describe('CallNumberService', () => {
                 expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
             })
 
+            it("should parse simplified dewey", () => {
+                const deweyNumber = "001 AGN"
+                const expectedResult = "001.0000000000_a  gn00   _          _          _"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
+            it("should parse simplified dewey cutter 2", () => {
+                const deweyNumber = "001 AGN AGN"
+                const expectedResult = "001.0000000000_a  gn00   _a  gn00   _          _"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
+            it("should parse simplified dewey cutter 3", () => {
+                const deweyNumber = "001 AGN AGN AGN"
+                const expectedResult = "001.0000000000_a  gn00   _a  gn00   _a  gn00   _"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
         })
 
         describe("Should parse LOC Call Numbers correctly", () => {
