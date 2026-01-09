@@ -1,4 +1,4 @@
-                   # Super Shelf Inventory Cloud App
+# Super Shelf Inventory Cloud App
 
 Welcome to the Super Shelf Inventory Cloud App, which integrates an advanced shelf
 inventory process into the ExLibris Alma Library Management System. Super Shelf
