@@ -291,6 +291,12 @@ describe('CallNumberService', () => {
                 expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
             })
 
+            it("should dewey with a prefix while ignoring the prefix", () => {
+                const deweyNumber = "Q 622.3 SAF"
+                const expectedResult = "622.3000000000_s  af00   _          _          _"
+                expect(service.normalizeDewey(deweyNumber)).toEqual(expectedResult)
+            })
+
         })
 
         describe("Should parse LOC Call Numbers correctly", () => {

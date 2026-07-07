@@ -31,7 +31,7 @@
     "strongly-typed-events": "3.0.11",
     "tslib": "2.8.1",
     "uuid": "11.0.5",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "xlsx-style": "^0.8.13",
     "zone.js": "0.14.10"
   },

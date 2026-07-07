@@ -58,7 +58,7 @@ export class CallNumberService {
 
         let {lcCallNumber, integerMarkers} = this.prepareCallNumber(originalLCNumber);
 
-        const lcRegex = /^(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.?\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z])(?<cutter1Number>\d+)(?<cutter1Suffix>[A-Z]{1,2} )?)?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+)(?<cutter2Suffix>[A-Z]{1,2} )?)?\s*(?<theTrimmings>.*)$/;
+        const lcRegex = /\b(?<initialLetters>[A-Z]{1,4})\s*(?<classNumber>\d+)\s*(?<decimalNumber>\.?\d*)\s*(?<cutter1>\.*\s*(?<cutter1Letter>[A-Z])(?<cutter1Number>\d+)(?<cutter1Suffix>[A-Z]{1,2} )?)?\s*(?<cutter2>(?<cutter2Letter>[A-Z])(?<cutter2Number>\d+)(?<cutter2Suffix>[A-Z]{1,2} )?)?\s*(?<theTrimmings>.*)/;
         const match = lcCallNumber.match(lcRegex);
         if (!match) return unparsable // return extreme answer if not a call number
 
@@ -186,8 +186,8 @@ export class CallNumberService {
         // Replace newline characters
         init = init.replace(/\n/g, "");
 
-        const deweyRegex = /^(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z]{1,3})(?<cutter1Number>\d{1,4})\d*(?<cutter1Suffix>[a-z]{1,3} )?) *(?<cutter2>(?<cutter2Letter>[a-z]{1,3})(?<cutter2Number>\d{1,4})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z]{1,3})(?<cutter3Number>\d{1,4})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
-        const simplifiedDeweyRegex = /^(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z])(?<cutter1Number>[a-z]{1,3})\d*(?<cutter1Suffix>[a-z]{1,2} )?) *(?<cutter2>(?<cutter2Letter>[a-z])(?<cutter2Number>[a-z]{1,2})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z])(?<cutter3Number>[a-z]{1,2})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)$/
+        const deweyRegex = /\b(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z]{1,3})(?<cutter1Number>\d{1,4})\d*(?<cutter1Suffix>[a-z]{1,3} )?) *(?<cutter2>(?<cutter2Letter>[a-z]{1,3})(?<cutter2Number>\d{1,4})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z]{1,3})(?<cutter3Number>\d{1,4})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)/
+        const simplifiedDeweyRegex = /\b(?<classNumber>\d{3})((?<decimalNumber>\.\d{1,10})\d*)? *(?<cutter1>(?<cutter1Letter>[a-z])(?<cutter1Number>[a-z]{1,3})\d*(?<cutter1Suffix>[a-z]{1,2} )?) *(?<cutter2>(?<cutter2Letter>[a-z])(?<cutter2Number>[a-z]{1,2})\d*(?<cutter2Suffix>[a-z]{1,3} )?)? *(?<cutter3>(?<cutter3Letter>[a-z])(?<cutter3Number>[a-z]{1,2})\d*(?<cutter3Suffix>[a-z]{1,3} )?)? *(?<theTrimmings>.*)/
         const match = init.match(deweyRegex);
         const simplifiedMatch = init.match(simplifiedDeweyRegex)
         if (!match && !simplifiedMatch) return unparsable // return extreme answer if not a call number
