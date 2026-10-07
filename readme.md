@@ -12,7 +12,7 @@ can be configured to narrow down the issues it's reporting on to assist you
 with specific tasks. This cloud app is also able to automatically mark items as
 inventoried and automatically scan in items that are not in place.
 
-For a user guide, please see [the USMAI Super Shelf Inventory User Guide](https://usmai.org/portal/x/54B2F) - this
+For a user guide, please see [the USMAI Super Shelf Inventory User Guide](https://usmai.atlassian.net/wiki/external/NmM1ZTJmODU1NDVkNGRjYjkyMjdhNTRiODY5MzgwZTE ) - this
 readme is designed for administrators and developers.
 
 ## Authorship
